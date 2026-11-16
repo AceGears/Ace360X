@@ -63,6 +63,7 @@ jobs:
       - name: Configure
         run: |
           NDK="$ANDROID_SDK_ROOT/ndk/$NDK_VERSION"
+          echo "Installed NDKs:"; ls "$ANDROID_SDK_ROOT/ndk"
           test -d "$NDK" || NDK="$ANDROID_NDK_LATEST_HOME"
           echo "Using NDK: $NDK"
           cmake -S native -B build-android -G Ninja \

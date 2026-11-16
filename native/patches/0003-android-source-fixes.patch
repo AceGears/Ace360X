@@ -1,0 +1,158 @@
+diff --git a/src/xenia/base/mutex.cc b/src/xenia/base/mutex.cc
+index 09b671a..6a3a587 100644
+--- a/src/xenia/base/mutex.cc
++++ b/src/xenia/base/mutex.cc
+@@ -91,7 +91,7 @@ inline int futex_wake(std::atomic<uint32_t>* addr, int count) {
+ 
+ // Only compared for equality, to detect the owner re-entering.
+ inline uint64_t xe_current_thread_id() {
+-  return static_cast<uint64_t>(reinterpret_cast<uintptr_t>(pthread_self()));
++  return static_cast<uint64_t>((uintptr_t)pthread_self());  // pthread_t is long on bionic
+ }
+ 
+ }  // namespace
+diff --git a/src/xenia/base/threading_posix.cc b/src/xenia/base/threading_posix.cc
+index 39c2a4e..b3601b4 100644
+--- a/src/xenia/base/threading_posix.cc
++++ b/src/xenia/base/threading_posix.cc
+@@ -279,7 +279,9 @@ class PosixConditionBase {
+     // Initialize as robust mutex to handle thread termination gracefully
+     pthread_mutexattr_t attr;
+     pthread_mutexattr_init(&attr);
++#if !XE_PLATFORM_ANDROID  // bionic has no robust mutexes
+     pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
++#endif
+ 
+     // Get the native handle and set it as robust
+     auto native_mutex = static_cast<pthread_mutex_t*>(mutex_.native_handle());
+@@ -300,7 +302,9 @@ class PosixConditionBase {
+     int lock_result = pthread_mutex_lock(native_mutex);
+     if (lock_result == EOWNERDEAD) {
+       // Recover from dead owner
++#if !XE_PLATFORM_ANDROID
+       pthread_mutex_consistent(native_mutex);
++#endif
+     } else if (lock_result != 0) {
+       return WaitResult::kFailed;
+     }
+@@ -375,7 +379,9 @@ class PosixConditionBase {
+           // Successfully acquired lock or recovered from dead owner
+           if (result == EOWNERDEAD) {
+             // Make mutex consistent after previous owner died
+-            pthread_mutex_consistent(native_mutex);
++      #if !XE_PLATFORM_ANDROID
++      pthread_mutex_consistent(native_mutex);
++#endif
+           }
+           locks.emplace_back(handles[i]->mutex_, std::adopt_lock);
+         } else {
+@@ -793,7 +799,7 @@ class PosixCondition<Thread> final : public PosixConditionBase {
+   }
+ 
+ #if XE_PLATFORM_ANDROID
+-  void SetAndroidPreApi26Name(const std::string_view name) {
++  void SetAndroidPreApi26Name(const std::string_view name) const {
+     if (android_pthread_getname_np_) {
+       return;
+     }
+@@ -1096,7 +1102,7 @@ class PosixCondition<Thread> final : public PosixConditionBase {
+   // Name accessible via name() on Android before API 26 which added
+   // pthread_getname_np.
+   mutable std::mutex android_pre_api_26_name_mutex_;
+-  char android_pre_api_26_name_[16];
++  mutable char android_pre_api_26_name_[16];  // written by const set_name()
+ #endif
+ };
+ 
+diff --git a/src/xenia/ui/imgui_drawer.cc b/src/xenia/ui/imgui_drawer.cc
+index 491827a..3f675f5 100644
+--- a/src/xenia/ui/imgui_drawer.cc
++++ b/src/xenia/ui/imgui_drawer.cc
+@@ -40,13 +40,17 @@
+ #include <ShlObj_core.h>
+ #endif
+ 
+-#if XE_PLATFORM_LINUX
++// Desktop Linux only: fontconfig, GTK clipboard and the embedded CJK font are
++// not available on Android, which also defines XE_PLATFORM_LINUX.
++#define XE_IMGUI_DESKTOP_LINUX (XE_PLATFORM_LINUX && !XE_PLATFORM_ANDROID)
++
++#if XE_IMGUI_DESKTOP_LINUX
+ #include <fontconfig/fontconfig.h>
+ 
+ #include "embedded_font.h"
+ #endif
+ 
+-#ifdef XE_PLATFORM_LINUX
++#if XE_IMGUI_DESKTOP_LINUX
+ #include <gtk/gtk.h>
+ #endif
+ 
+@@ -148,7 +152,7 @@ void ImGuiDrawer::RemoveNotification(ImGuiNotification* dialog) {
+   DetachIfLastWindowRemoved();
+ }
+ 
+-#ifdef XE_PLATFORM_LINUX
++#if XE_IMGUI_DESKTOP_LINUX
+ static void SetClipboardText(ImGuiContext* ctx, const char* text) {
+   GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+   gtk_clipboard_set_text(clipboard, text, -1);
+@@ -180,7 +184,7 @@ void ImGuiDrawer::Initialize() {
+   font_size_ = std::max((float)cvars::font_size, 8.f);
+   InitializeFonts(font_size_);
+ 
+-#ifdef XE_PLATFORM_LINUX
++#if XE_IMGUI_DESKTOP_LINUX
+   auto& platform_io = ImGui::GetPlatformIO();
+   platform_io.Platform_SetClipboardTextFn = SetClipboardText;
+   platform_io.Platform_GetClipboardTextFn = GetClipboardText;
+@@ -350,7 +354,7 @@ void ImGuiDrawer::SetupNotificationTextures() {
+   }
+ }
+ 
+-#if XE_PLATFORM_WIN32 || XE_PLATFORM_LINUX
++#if XE_PLATFORM_WIN32 || XE_IMGUI_DESKTOP_LINUX
+ static ImFontConfig MakeCjkFontConfig() {
+   ImFontConfig font_config;
+   font_config.MergeMode = true;
+@@ -426,7 +430,7 @@ bool ImGuiDrawer::LoadCustomFont(ImGuiIO& io, ImFontConfig& font_config,
+   return true;
+ }
+ 
+-#if XE_PLATFORM_LINUX
++#if XE_IMGUI_DESKTOP_LINUX
+ // Returns the best TrueType match stb_truetype can load, or an empty string.
+ // It can't parse CFF or variable fonts, such as Fedora's NotoSansCJK-VF.ttc,
+ // which fontconfig may still return.
+@@ -486,7 +490,7 @@ bool ImGuiDrawer::LoadSystemFont(ImGuiIO& io, ImFontConfig& font_config,
+     return false;
+   }
+   return true;
+-#elif XE_PLATFORM_LINUX
++#elif XE_IMGUI_DESKTOP_LINUX
+   // Any distribution has a monospace font, which keeps UI columns even.
+   FcPattern* pattern =
+       FcNameParse(reinterpret_cast<const FcChar8*>("monospace"));
+@@ -530,7 +534,7 @@ void ImGuiDrawer::LoadJapaneseFont(ImGuiIO& io, float font_size) {
+   ImFontConfig jp_font_config = MakeCjkFontConfig();
+   io.Fonts->AddFontFromFileTTF(xe::path_to_utf8(jp_font_path).c_str(),
+                                font_size, &jp_font_config);
+-#elif XE_PLATFORM_LINUX
++#elif XE_IMGUI_DESKTOP_LINUX
+   if (IsFontLoadable(xe::ui::embedded_font::MPLUS1p_Regular_ttf_data,
+                      xe::ui::embedded_font::MPLUS1p_Regular_ttf_size)) {
+     ImFontConfig jp_font_config = MakeCjkFontConfig();
+diff --git a/src/xenia/ui/window_android.cc b/src/xenia/ui/window_android.cc
+index 0e675c0..4860910 100644
+--- a/src/xenia/ui/window_android.cc
++++ b/src/xenia/ui/window_android.cc
+@@ -55,7 +55,8 @@ void AndroidWindow::OnActivitySurfaceLayoutChange() {
+   OnDesiredLogicalSizeUpdate(SizeToLogical(physical_width),
+                              SizeToLogical(physical_height));
+   WindowDestructionReceiver destruction_receiver(this);
+-  OnActualSizeUpdate(physical_width, physical_height, destruction_receiver);
++  OnActualSizeUpdate(physical_width, physical_height,
++                     WindowResizeAction::kManual, destruction_receiver);
+   if (destruction_receiver.IsWindowDestroyedOrClosed()) {
+     return;
+   }

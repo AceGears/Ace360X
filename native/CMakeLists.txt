@@ -17,7 +17,11 @@ if(ANDROID)
   option(ACE_WITH_XENIA "Build and link the Xenia Canary core" ON)
   if(ACE_WITH_XENIA)
     include(cmake/ApplyXeniaPatches.cmake)
+    include(cmake/XeniaVersion.cmake)
     set(XENIA_DISABLE_WERROR ON)  # see native/patches/README.md
+    # Upstream adds -Wno-* flags for newer desktop clang that NDK clang lacks.
+    string(APPEND CMAKE_C_FLAGS " -Wno-unknown-warning-option")
+    string(APPEND CMAKE_CXX_FLAGS " -Wno-unknown-warning-option")
     add_subdirectory(xenia-upstream xenia EXCLUDE_FROM_ALL)
     set(ACE_XENIA_LIBS
       xenia-core xenia-cpu xenia-cpu-backend-a64 xenia-apu xenia-apu-nop
