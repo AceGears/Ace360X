@@ -115,6 +115,7 @@ fun DeviceScreen(modifier: Modifier = Modifier) {
                     )
                 }
             }
+            item { CoreSelfTestCard() }
             item { VulkanCard(vk) }
         }
     }

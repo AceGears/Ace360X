@@ -32,6 +32,29 @@ object NativeBridge {
         return if (code < 0) null else GameFormat.fromCode(code)
     }
 
+    /** True if this build links the Xenia Canary core. */
+    val hasCore: Boolean by lazy { isLoaded && nativeHasCore() }
+
+    @Volatile private var coreInitialised = false
+
+    /** Xenia's Android init; must run on the main thread before any core use. */
+    @Synchronized
+    fun initCore(context: android.content.Context) {
+        if (!hasCore || coreInitialised) return
+        nativeInitCore(android.os.Build.VERSION.SDK_INT, context.applicationContext)
+        coreInitialised = true
+    }
+
+    /** Runs the on-device core self-test (blocking, call off the main thread). JSON result. */
+    fun runCoreSelfTestJson(): String = when {
+        !hasCore -> """{"error":"This build does not include the emulation core"}"""
+        !coreInitialised -> """{"error":"Core not initialised"}"""
+        else -> nativeRunCoreSelfTest()
+    }
+
+    private external fun nativeHasCore(): Boolean
+    private external fun nativeInitCore(apiLevel: Int, context: android.content.Context)
+    private external fun nativeRunCoreSelfTest(): String
     private external fun nativeProbeVulkan(): String
     private external fun nativeSniffFormat(fd: Int): Int
 }

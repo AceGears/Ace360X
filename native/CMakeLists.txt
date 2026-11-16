@@ -35,7 +35,12 @@ if(ANDROID)
   set_target_properties(ace360x PROPERTIES CXX_EXTENSIONS OFF)
   target_link_libraries(ace360x PRIVATE ace_host_common vulkan log android ${ACE_XENIA_LIBS})
   if(ACE_WITH_XENIA)
+    target_sources(ace360x PRIVATE host/core_selftest.cpp)
     target_compile_definitions(ace360x PRIVATE ACE_WITH_XENIA=1)
+    # Upstream headers as SYSTEM so our -Werror applies to our code only.
+    target_include_directories(ace360x SYSTEM PRIVATE
+      xenia-upstream xenia-upstream/src xenia-upstream/third_party
+      xenia-upstream/third_party/fmt/include ${CMAKE_BINARY_DIR})
   endif()
   # 16 KB page-size compatibility (required for new Play submissions).
   target_link_options(ace360x PRIVATE "-Wl,-z,max-page-size=16384")

@@ -19,17 +19,20 @@ import com.acegears.ace360x.BuildConfig
 import com.acegears.ace360x.core.NativeBridge
 
 private val sections = listOf(
-    "Status" to "Early development (Phase 2 of 12). Working today: game folder scanning, " +
-        "file identification and a device capability check. Not yet working: running games. " +
-        "Compatibility for every title is Untested.",
+    "Status" to "Early development (Phase 3 of 12). Working today: game folder scanning, " +
+        "file identification, a device capability check and an emulation-core self-test. " +
+        "Not yet working: running games. Compatibility for every title is Untested.",
     "Legal" to "Ace360X does not include any Xbox 360 firmware, keys or games. " +
         "Use only backups of games you own. Xbox and Xbox 360 are trademarks of Microsoft; " +
         "this project is not affiliated with or endorsed by Microsoft.",
     "Privacy" to "No ads, no tracking, no analytics, no internet access. " +
         "Ace360X only reads the folders you choose.",
     "Open-source licences" to "Ace360X — BSD 3-Clause.\n" +
-        "Planned core: Xenia Canary — BSD 3-Clause, © Ben Vanik and Xenia contributors " +
-        "(not yet included in this build).\n" +
+        "Xenia Canary — BSD 3-Clause, © Ben Vanik and Xenia contributors.\n" +
+        "FFmpeg (XMA audio decoding, built from source) — LGPL 2.1+.\n" +
+        "fmt, xxhash, imgui, glslang, Vulkan-Headers, VulkanMemoryAllocator, capstone, " +
+        "xbyak_aarch64, zstd, zlib-ng, snappy and other libraries bundled by Xenia — " +
+        "see docs/LICENSES.md in the source repository.\n" +
         "AndroidX, Jetpack Compose, Kotlin coroutines — Apache 2.0.",
 )
 
