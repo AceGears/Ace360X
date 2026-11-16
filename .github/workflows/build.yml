@@ -101,7 +101,9 @@ jobs:
           NM="$(ls -d $ANDROID_SDK_ROOT/ndk/$NDK_VERSION)/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           "$NM" -C build-android/libace360x.so > syms.txt || true
           echo "Total symbols: $(wc -l < syms.txt)"
-          if grep -iE "dxbc|CalculateDXBCChecksum" syms.txt | head -20; then
+          grep -iE "dxbc|CalculateDXBCChecksum" syms.txt > dxbc-syms.txt || true
+          if [ -s dxbc-syms.txt ]; then
+            head -20 dxbc-syms.txt
             echo "::warning::dxbc symbols are linked into libace360x.so (licence open, see docs/LICENSES.md)"
           else
             echo "No dxbc symbols linked."
