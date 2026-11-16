@@ -50,6 +50,12 @@ jobs:
         run: ./gradlew --no-daemon testDebugUnitTest
       - name: Build debug APK
         run: ./gradlew --no-daemon assembleDebug
+      - name: Verify APK contents
+        run: |
+          apk=$(ls app/build/outputs/apk/debug/*.apk)
+          unzip -l "$apk" | tee apk-contents.txt
+          grep -q "lib/arm64-v8a/libace360x.so" apk-contents.txt
+          ls -l "$apk"
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
