@@ -19,6 +19,12 @@ if(ANDROID)
     include(cmake/ApplyXeniaPatches.cmake)
     include(cmake/XeniaVersion.cmake)
     set(XENIA_DISABLE_WERROR ON)  # see native/patches/README.md
+    # Everything is linked into one .so: keep core symbols hidden (only JNIEXPORT
+    # functions are exported). Required by FFmpeg's NEON assembly, which uses
+    # PC-relative references to its C tables, and keeps the library smaller.
+    set(CMAKE_C_VISIBILITY_PRESET hidden)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
     # Upstream adds -Wno-* flags for newer desktop clang that NDK clang lacks.
     string(APPEND CMAKE_C_FLAGS " -Wno-unknown-warning-option")
     string(APPEND CMAKE_CXX_FLAGS " -Wno-unknown-warning-option")
