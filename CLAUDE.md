@@ -27,9 +27,11 @@ native/             CMake root (built by Gradle for Android, standalone for host
   host/             jni_bridge.cpp (the ONLY C++ side of JNI), SAF fd I/O, Vulkan probe,
                     format sniffer; later Oboe audio, input queue, thermal/ADPF, perf counters
   tests/            host-side C++ unit tests + libFuzzer targets
-  xenia-upstream/   git submodule (xenia-canary, pinned commit) — never edited in place
-  patches/          our C++ overlay/patches on top of upstream, each with a README note
-  third_party/      NDK builds of deps (pinned versions)
+  xenia-upstream/   git submodule (xenia-canary, pinned commit); upstream commits never edited —
+                    our changes are patch files applied at CMake configure time
+  patches/          NNNN-*.patch on top of upstream, each explained in patches/README.md
+  cmake/            ApplyXeniaPatches.cmake, XeniaVersion.cmake
+scripts/            fetch-xenia-deps.sh (shallow, Android-relevant submodules), CI helpers
 app/src/test        JVM unit tests for pure Kotlin logic
 .github/workflows/  CI: host tests + fuzz, Android unit tests, debug APK artifact
 ci/debug.keystore   PUBLIC debug-only signing key (never for releases)
@@ -55,7 +57,10 @@ docs/               feasibility, architecture, ADRs, reports
 ## 5. Build and dependencies
 - Android Studio (latest stable), AGP + Gradle wrapper, NDK r29 `29.0.14206865` (pinned in `app/build.gradle.kts` and CI),
   CMake 3.22+, JDK 17.
-- `./gradlew assembleDebug` must work from a clean clone after `git submodule update --init`.
+- `./gradlew assembleDebug` must work from a clean clone after `scripts/fetch-xenia-deps.sh`.
+  Host tools: Python 3 and Vulkan SDK (`glslangValidator`, `spirv-opt`; CI pins SDK 1.4.363.1).
+- The Xenia core is built via upstream's own CMake (`add_subdirectory`, `EXCLUDE_FROM_ALL`) with
+  hidden symbol visibility; only JNI functions are exported from `libace360x.so`.
 - All third-party versions pinned; licences listed in `docs/LICENSES.md` and shown in-app.
 - No dependency added without: licence check, size impact, and reason in the PR/commit.
 
@@ -178,7 +183,8 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
 
 ## Current status (2026-11-16) — details in `docs/PROGRESS.md`
 - Complete: —
-- Implemented (unverified): Phase 2 skeleton — Gradle/Compose/JNI/CMake project, library
-  folder scanning + format identification, device capability screen, CI.
-- Verified: host C++ unit tests (format sniffer).
-- Next: green CI + on-device launch check (closes Phase 2), then Phase 3 (Xenia Canary submodule).
+- Implemented (unverified on device): Phase 2 app; Phase 3 in progress — Xenia Canary core
+  (incl. a64 JIT, Vulkan GPU, kernel, VFS, FFmpeg XMA) compiles for arm64-v8a in CI with 4
+  patches; on-device core self-test (guest memory + JIT executes PowerPC code).
+- Verified: host C++ unit tests + fuzzing (format sniffer); CI compile of the full core.
+- Next: user runs APK + self-test on a phone; then Phase 4 (Vulkan surface, first guest frame).

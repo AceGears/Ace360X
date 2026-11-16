@@ -32,7 +32,11 @@ if(ANDROID)
     set(ACE_XENIA_LIBS
       xenia-core xenia-cpu xenia-cpu-backend-a64 xenia-apu xenia-apu-nop
       xenia-gpu xenia-gpu-null xenia-gpu-vulkan xenia-hid xenia-hid-nop
-      xenia-kernel xenia-vfs xenia-ui xenia-ui-vulkan xenia-patcher xenia-base)
+      xenia-kernel xenia-vfs xenia-ui xenia-ui-vulkan xenia-patcher xenia-base
+      # Third-party libraries, mirroring upstream's xenia-app link list
+      # (upstream libraries don't declare all of these themselves).
+      aes_128 capstone fmt dxbc imgui libavcodec libavutil mspack snappy xxhash
+      glslang-spirv xbyak_aarch64 zstd zarchive zlib-ng pugixml)
   endif()
 
   # Shared library loaded by NativeBridge.kt

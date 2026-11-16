@@ -4,9 +4,10 @@ An experimental Xbox 360 emulator for Android (ARM64), being built on top of
 [Xenia Canary](https://github.com/xenia-canary/xenia-canary).
 
 > **Status: early development — it cannot run games yet.**
-> The current build scans your game folders, identifies Xbox 360 files (ISO / XEX / STFS)
-> and reports your phone's Vulkan, RAM and thermal capabilities. The emulation core is
-> the next phase. See [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> The current build scans your game folders, identifies Xbox 360 files (ISO / XEX / STFS),
+> reports your phone's Vulkan, RAM and thermal capabilities, and includes the Xenia Canary
+> core with an on-device **core self-test** (guest memory + PowerPC→ARM64 JIT).
+> See [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## Getting a build
 
@@ -15,7 +16,13 @@ Every push to `main` builds a debug APK with GitHub Actions:
 (you'll need to allow installs from your browser or file manager).
 Debug builds share one public debug key, so each new build installs over the last.
 
-To build locally: Android Studio (latest), JDK 17, then `./gradlew assembleDebug`.
+To build locally: Android Studio (latest), JDK 17, NDK r29, Python 3 and the
+[Vulkan SDK](https://vulkan.lunarg.com/sdk/home) (for `glslangValidator`/`spirv-opt`; set `VULKAN_SDK`), then:
+
+```bash
+scripts/fetch-xenia-deps.sh     # Xenia Canary submodule + the deps Android needs
+./gradlew assembleDebug
+```
 
 ## Requirements (provisional)
 
