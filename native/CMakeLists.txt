@@ -40,6 +40,13 @@ if(ANDROID)
       # Needed by upstream's app layer (xenia_main / emulator_window).
       xenia-debug-ui xenia-hid-keyboard xenia-app-discord discord-rpc)
 
+    # discord-rpc only gets its POSIX sources on desktop Linux upstream. Discord
+    # presence is disabled on Android (EmulatorActivity passes discord=false),
+    # but the code must still link.
+    target_sources(discord-rpc PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/xenia-upstream/third_party/discord-rpc/src/connection_unix.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/xenia-upstream/third_party/discord-rpc/src/discord_register_linux.cpp)
+
     # Upstream's emulator app (EmulatorApp, EmulatorWindow, dialogs), compiled
     # with exactly the definitions/options upstream uses for its own targets:
     # some (e.g. IMGUI_USE_WCHAR32) change struct layouts and must match.
