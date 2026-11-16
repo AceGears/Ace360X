@@ -7,6 +7,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "xenia/base/byte_order.h"
@@ -24,6 +25,10 @@ std::mutex g_mutex;
 bool g_initialized = false;
 
 struct Step {
+  Step() = default;
+  explicit Step(std::string n) : name(std::move(n)) {}
+  Step(std::string n, bool k, std::string d, double t)
+      : name(std::move(n)), ok(k), detail(std::move(d)), ms(t) {}
   std::string name;
   bool ok = false;
   std::string detail;
@@ -95,7 +100,7 @@ std::string RunCoreSelfTestJson() {
   std::lock_guard<std::mutex> lock(g_mutex);
   std::vector<Step> steps;
   if (!g_initialized) {
-    steps.push_back({"Core initialised", false, "InitializeCore was not called", 0});
+    steps.emplace_back("Core initialised", false, "InitializeCore was not called", 0);
     return ToJson(steps);
   }
 
