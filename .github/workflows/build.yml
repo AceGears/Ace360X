@@ -51,7 +51,8 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ninja-build ccache glslang-tools spirv-tools
+          sudo apt-get install -y -qq ninja-build ccache
+          scripts/ci-install-vulkan-sdk.sh
       - name: Restore compiler cache
         uses: actions/cache/restore@v4
         with:
@@ -113,9 +114,7 @@ jobs:
       - name: Fetch Xenia sources
         run: scripts/fetch-xenia-deps.sh
       - name: Install shader tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq glslang-tools spirv-tools
+        run: scripts/ci-install-vulkan-sdk.sh
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

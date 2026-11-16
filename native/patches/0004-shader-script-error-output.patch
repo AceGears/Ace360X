@@ -1,0 +1,34 @@
+diff --git a/tools/build/compile_shader_spirv.py b/tools/build/compile_shader_spirv.py
+index 2f7eb26..8280ac4 100644
+--- a/tools/build/compile_shader_spirv.py
++++ b/tools/build/compile_shader_spirv.py
+@@ -107,7 +107,8 @@ def main():
+         if result.returncode != 0:
+             print(f"ERROR: glslangValidator failed for {src_name}", file=sys.stderr)
+             if result.stderr:
+-                sys.stderr.write(result.stderr)
++                err = result.stderr
++                sys.stderr.write(err if isinstance(err, str) else err.decode(errors="replace"))
+             return 1
+ 
+         # Step 2: spirv-opt
+@@ -118,7 +119,8 @@ def main():
+         if result.returncode != 0:
+             print(f"ERROR: spirv-opt failed for {src_name}", file=sys.stderr)
+             if result.stderr:
+-                sys.stderr.write(result.stderr)
++                err = result.stderr
++                sys.stderr.write(err if isinstance(err, str) else err.decode(errors="replace"))
+             return 1
+ 
+         # Step 3: spirv-dis
+@@ -127,7 +129,8 @@ def main():
+         if result.returncode != 0:
+             print(f"ERROR: spirv-dis failed for {src_name}", file=sys.stderr)
+             if result.stderr:
+-                sys.stderr.write(result.stderr)
++                err = result.stderr
++                sys.stderr.write(err if isinstance(err, str) else err.decode(errors="replace"))
+             return 1
+ 
+         # Step 4: Generate header
