@@ -52,6 +52,26 @@ object NativeBridge {
         else -> nativeRunCoreSelfTest()
     }
 
+    /** Pushes one player's full controller state (XInput ranges). */
+    fun setPadState(user: Int, pad: com.acegears.ace360x.emu.PadSnapshot) {
+        if (!hasCore) return
+        nativeSetPadState(
+            user, pad.connected, pad.buttons, pad.leftTrigger, pad.rightTrigger,
+            pad.thumbLX, pad.thumbLY, pad.thumbRX, pad.thumbRY,
+        )
+    }
+
+    /** Rumble requested by the game: (left motor, right motor), 0..65535. */
+    fun padVibration(user: Int): Pair<Int, Int> {
+        if (!hasCore) return 0 to 0
+        val v = nativeGetPadVibration(user)
+        return (v ushr 16) to (v and 0xFFFF)
+    }
+
+    private external fun nativeSetPadState(
+        user: Int, connected: Boolean, buttons: Int, lt: Int, rt: Int, lx: Int, ly: Int, rx: Int, ry: Int,
+    )
+    private external fun nativeGetPadVibration(user: Int): Int
     private external fun nativeHasCore(): Boolean
     private external fun nativeInitCore(apiLevel: Int, context: android.content.Context)
     private external fun nativeRunCoreSelfTest(): String

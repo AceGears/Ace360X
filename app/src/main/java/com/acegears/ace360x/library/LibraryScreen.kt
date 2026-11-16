@@ -115,7 +115,8 @@ private fun StatusNote() {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Text(
             "Experimental build. Tap a disc image or package to start it. Expect many games " +
-                "not to boot yet, and there is no sound or controller input in this version.",
+                "not to boot or to run slowly. Connect a Bluetooth/USB controller to play; " +
+                "on-screen touch controls aren't available yet.",
             modifier = Modifier.padding(14.dp),
             style = MaterialTheme.typography.bodyMedium,
         )

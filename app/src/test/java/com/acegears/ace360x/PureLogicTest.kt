@@ -2,6 +2,7 @@ package com.acegears.ace360x
 
 import com.acegears.ace360x.core.GameFormat
 import com.acegears.ace360x.device.DeviceChecks
+import com.acegears.ace360x.emu.GamepadMapper
 import com.acegears.ace360x.library.ScanPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,5 +60,28 @@ class PureLogicTest {
         assertEquals(1 to 3, DeviceChecks.parseVersion("1.3.128"))
         assertNull(DeviceChecks.parseVersion("garbage"))
         assertNull(DeviceChecks.parseVersion(""))
+    }
+
+    @Test fun gamepadButtons() {
+        assertEquals(GamepadMapper.A, GamepadMapper.buttonForKey(GamepadMapper.KEYCODE_BUTTON_A))
+        assertEquals(GamepadMapper.BACK, GamepadMapper.buttonForKey(GamepadMapper.KEYCODE_BUTTON_SELECT))
+        assertEquals(0, GamepadMapper.buttonForKey(GamepadMapper.KEYCODE_BUTTON_L2))
+        assertTrue(GamepadMapper.isDigitalTrigger(GamepadMapper.KEYCODE_BUTTON_R2))
+    }
+
+    @Test fun gamepadSticks() {
+        assertEquals(0 to 0, GamepadMapper.stick(0.05f, -0.05f))      // inside dead zone
+        assertEquals(32767 to 0, GamepadMapper.stick(1f, 0f))         // full right
+        assertEquals(0 to 32767, GamepadMapper.stick(0f, -1f))        // Android up = XInput +Y
+        assertEquals(0 to -32768, GamepadMapper.stick(0f, 1f))
+        val (x, _) = GamepadMapper.stick(0.2f, 0f)                    // just past dead zone: small
+        assertTrue(x in 1..5000)
+        assertEquals(0, GamepadMapper.trigger(-0.2f))
+        assertEquals(255, GamepadMapper.trigger(1.5f))
+    }
+
+    @Test fun hatToDpad() {
+        assertEquals(GamepadMapper.DPAD_UP or GamepadMapper.DPAD_LEFT, GamepadMapper.hatButtons(-1f, -1f))
+        assertEquals(0, GamepadMapper.hatButtons(0f, 0f))
     }
 }

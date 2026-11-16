@@ -12,6 +12,7 @@
 #include "vulkan_probe.h"
 
 #if ACE_WITH_XENIA
+#include "android_input_driver.h"
 #include "core_selftest.h"
 #endif
 
@@ -97,5 +98,45 @@ Java_com_acegears_ace360x_core_NativeBridge_nativeRunCoreSelfTest(JNIEnv* env, j
   return ToJString(env, "{\"error\":\"unknown exception\"}");
 #else
   return ToJString(env, "{\"error\":\"This build does not include the emulation core\"}");
+#endif
+}
+
+// Controller state from Kotlin (EmulatorActivity). Values are already in
+// XInput ranges; see GamepadMapper.kt.
+extern "C" JNIEXPORT void JNICALL
+Java_com_acegears_ace360x_core_NativeBridge_nativeSetPadState(
+    JNIEnv* /*env*/, jobject /*thiz*/, jint user, jboolean connected, jint buttons, jint lt, jint rt,
+    jint lx, jint ly, jint rx, jint ry) {
+#if ACE_WITH_XENIA
+  ace360x::host::PadState s;
+  s.connected = connected == JNI_TRUE;
+  s.buttons = static_cast<uint16_t>(buttons & 0xFFFF);
+  s.left_trigger = static_cast<uint8_t>(lt < 0 ? 0 : (lt > 255 ? 255 : lt));
+  s.right_trigger = static_cast<uint8_t>(rt < 0 ? 0 : (rt > 255 ? 255 : rt));
+  auto clamp16 = [](jint v) {
+    return static_cast<int16_t>(v < -32768 ? -32768 : (v > 32767 ? 32767 : v));
+  };
+  s.thumb_lx = clamp16(lx);
+  s.thumb_ly = clamp16(ly);
+  s.thumb_rx = clamp16(rx);
+  s.thumb_ry = clamp16(ry);
+  ace360x::host::SetPadState(user, s);
+#else
+  (void)user; (void)connected; (void)buttons; (void)lt; (void)rt;
+  (void)lx; (void)ly; (void)rx; (void)ry;
+#endif
+}
+
+// Returns (left << 16) | right motor speed requested by the game.
+extern "C" JNIEXPORT jint JNICALL
+Java_com_acegears_ace360x_core_NativeBridge_nativeGetPadVibration(JNIEnv* /*env*/, jobject /*thiz*/,
+                                                                  jint user) {
+#if ACE_WITH_XENIA
+  uint16_t left = 0, right = 0;
+  ace360x::host::GetPadVibration(user, &left, &right);
+  return static_cast<jint>((static_cast<uint32_t>(left) << 16) | right);
+#else
+  (void)user;
+  return 0;
 #endif
 }

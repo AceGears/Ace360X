@@ -1,0 +1,28 @@
+diff --git a/src/xenia/app/xenia_main.cc b/src/xenia/app/xenia_main.cc
+index c89c8d7..5221be5 100644
+--- a/src/xenia/app/xenia_main.cc
++++ b/src/xenia/app/xenia_main.cc
+@@ -61,6 +61,13 @@
+ #if !XE_PLATFORM_ANDROID
+ #include "xenia/hid/sdl/sdl_hid.h"
+ #endif  // !XE_PLATFORM_ANDROID
++#if XE_PLATFORM_ANDROID
++// Ace360X: Android controller input, implemented in native/host.
++namespace xe::hid::android {
++std::unique_ptr<xe::hid::InputDriver> Create(xe::ui::Window* window,
++                                             size_t window_z_order);
++}  // namespace xe::hid::android
++#endif  // XE_PLATFORM_ANDROID
+ #if XE_PLATFORM_WIN32
+ #include "xenia/hid/keyboard/keyboard_hid.h"
+ #include "xenia/hid/xinput/xinput_hid.h"
+@@ -455,6 +462,9 @@ std::vector<std::unique_ptr<hid::InputDriver>> EmulatorApp::CreateInputDrivers(
+ #if !XE_PLATFORM_ANDROID
+     factory.Add("sdl", xe::hid::sdl::Create);
+ #endif  // !XE_PLATFORM_ANDROID
++#if XE_PLATFORM_ANDROID
++    factory.Add("android", xe::hid::android::Create);  // Ace360X
++#endif  // XE_PLATFORM_ANDROID
+ #if XE_PLATFORM_LINUX
+     factory.Add("keyboard", xe::hid::keyboard::Create);
+ #endif

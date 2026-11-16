@@ -51,12 +51,16 @@ if(ANDROID)
       ${_xe}/src/xenia/app/emulator_window.cc
       ${_xe}/src/xenia/app/console_settings_dialog.cc
       ${_xe}/src/xenia/app/content_list_dialog.cc
-      ${_xe}/src/xenia/app/profile_dialogs.cc)
+      ${_xe}/src/xenia/app/profile_dialogs.cc
+      # Ours, but built with upstream's flags since it implements a Xenia interface.
+      ${CMAKE_CURRENT_SOURCE_DIR}/host/android_input_driver.cc
+      ${CMAKE_CURRENT_SOURCE_DIR}/host/aaudio_audio_system.cc)
     target_compile_definitions(ace_xenia_app PRIVATE ${_xe_defs}
       XBYAK_NO_OP_NAMES XBYAK_ENABLE_OMITTED_OPERAND)
     target_compile_options(ace_xenia_app PRIVATE ${_xe_opts})
     target_include_directories(ace_xenia_app PRIVATE
-      ${_xe} ${_xe}/src ${_xe}/third_party ${CMAKE_BINARY_DIR})
+      ${_xe} ${_xe}/src ${_xe}/third_party ${CMAKE_BINARY_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}/host)
     target_link_libraries(ace_xenia_app PRIVATE ${ACE_XENIA_LIBS})
     list(APPEND ACE_XENIA_LIBS ace_xenia_app)
 
@@ -76,7 +80,7 @@ if(ANDROID)
   add_library(ace360x SHARED host/jni_bridge.cpp host/vulkan_probe.cpp)
   target_compile_options(ace360x PRIVATE ${ACE_WARNINGS})
   set_target_properties(ace360x PROPERTIES CXX_EXTENSIONS OFF)
-  target_link_libraries(ace360x PRIVATE ace_host_common vulkan log android ${ACE_XENIA_LIBS})
+  target_link_libraries(ace360x PRIVATE ace_host_common vulkan log android aaudio ${ACE_XENIA_LIBS})
   if(ACE_WITH_XENIA)
     foreach(_sym IN LISTS ACE_XENIA_JNI_SYMBOLS)
       target_link_options(ace360x PRIVATE "-Wl,-u,${_sym}")

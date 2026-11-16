@@ -5,6 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Process
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.view.WindowCompat
@@ -48,17 +50,38 @@ class EmulatorActivity : WindowedAppActivity() {
 
     override fun getWindowedAppIdentifier(): String = "xenia"
 
+    private lateinit var gamepads: GamepadInput
+
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         if (isFinishing) return
 
+        gamepads = GamepadInput(this)
         val surfaceView = WindowSurfaceView(this)
         setContentView(surfaceView)
         setWindowSurfaceView(surfaceView)
         hideSystemBars()
     }
+
+    override fun onResume() {
+        super.onResume()
+        if (::gamepads.isInitialized) gamepads.start()
+    }
+
+    override fun onPause() {
+        if (::gamepads.isInitialized) gamepads.stop()
+        super.onPause()
+    }
+
+    // Controller events are taken before view dispatch so the on-screen UI
+    // (ImGui, which also listens to the surface) doesn't swallow them.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        (::gamepads.isInitialized && gamepads.onKeyEvent(event)) || super.dispatchKeyEvent(event)
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        (::gamepads.isInitialized && gamepads.onMotionEvent(event)) || super.dispatchGenericMotionEvent(event)
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)

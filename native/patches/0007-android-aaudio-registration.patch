@@ -1,0 +1,24 @@
+diff --git a/src/xenia/app/xenia_main.cc b/src/xenia/app/xenia_main.cc
+index 5221be5..3bd4e92 100644
+--- a/src/xenia/app/xenia_main.cc
++++ b/src/xenia/app/xenia_main.cc
+@@ -37,6 +37,9 @@
+ 
+ // Available audio systems:
+ #include "xenia/apu/nop/nop_audio_system.h"
++#if XE_PLATFORM_ANDROID
++#include "aaudio_audio_system.h"  // Ace360X: native/host
++#endif  // XE_PLATFORM_ANDROID
+ #if !XE_PLATFORM_ANDROID
+ #include "xenia/apu/sdl/sdl_audio_system.h"
+ #endif  // !XE_PLATFORM_ANDROID
+@@ -332,6 +335,9 @@ std::unique_ptr<apu::AudioSystem> EmulatorApp::CreateAudioSystem(
+ #if !XE_PLATFORM_ANDROID
+   factory.Add<apu::sdl::SDLAudioSystem>("sdl");
+ #endif  // !XE_PLATFORM_ANDROID
++#if XE_PLATFORM_ANDROID
++  factory.Add<apu::aaudio::AAudioAudioSystem>("aaudio");  // Ace360X
++#endif  // XE_PLATFORM_ANDROID
+   factory.Add<apu::nop::NopAudioSystem>("nop");
+   return factory.Create(cvars::apu, processor);
+ }
