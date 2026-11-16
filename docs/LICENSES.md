@@ -29,11 +29,12 @@ against the final `.so` symbols before any release.
 | crypto/sha256 | zlib | crypto/TinySHA1: permissive (ISC-style); rijndael-alg-fst: public domain |
 | stb | public domain / MIT | |
 
-## Open question
+## Resolved question
 
 - **`third_party/dxbc` (DXBCChecksum, © AMD, "All rights reserved", no licence grant in the
-  file).** Used for Direct3D 12 shader containers. Before any release we must confirm whether
-  any of it is linked into `libace360x.so` (`nm`/`readelf` on the release build) and, if so,
-  either confirm its licence upstream or exclude it on Android.
+  file).** Used only for Direct3D 12 shader containers. CI runs `llvm-nm` on every release-mode
+  `libace360x.so`: **no dxbc symbols are linked on Android** (first checked 2026-11-16, run
+  "CI: fix dxbc licence check"). The library is listed in CMake for link resolution only; the
+  linker drops it. If that check ever warns, this must be revisited before a release.
 
 Android app dependencies (AndroidX, Jetpack Compose, Kotlin coroutines): Apache 2.0.
