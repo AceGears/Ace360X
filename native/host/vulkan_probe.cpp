@@ -71,10 +71,12 @@ std::string ProbeVulkanAsJson() {
                  VersionString(loader_version));
   }
 
-  VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+  VkApplicationInfo app{};
+  app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   app.pApplicationName = "Ace360X";
   app.apiVersion = VK_API_VERSION_1_1;
-  VkInstanceCreateInfo ci{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+  VkInstanceCreateInfo ci{};
+  ci.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   ci.pApplicationInfo = &app;
 
   InstanceGuard guard;
@@ -112,9 +114,10 @@ std::string ProbeVulkanAsJson() {
     auto get_props2 = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(
         vkGetInstanceProcAddr(guard.instance, "vkGetPhysicalDeviceProperties2"));
     if (get_props2) {
-      VkPhysicalDeviceDriverPropertiesKHR driver{
-          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR};
-      VkPhysicalDeviceProperties2 p2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+      VkPhysicalDeviceDriverPropertiesKHR driver{};
+      driver.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR;
+      VkPhysicalDeviceProperties2 p2{};
+      p2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
       p2.pNext = &driver;
       get_props2(gpu, &p2);
       driver_name = driver.driverName;
