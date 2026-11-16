@@ -46,6 +46,11 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "+$gitSha"
+            // The emulation core is always built optimised: an -O0 JIT/GPU core is
+            // too slow to be representative. Kotlin/Java code stays debuggable.
+            externalNativeBuild {
+                cmake { arguments += "-DCMAKE_BUILD_TYPE=Release" }
+            }
         }
         release {
             isMinifyEnabled = false

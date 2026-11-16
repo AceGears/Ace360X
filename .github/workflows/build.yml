@@ -95,6 +95,17 @@ jobs:
           tail -40 build.log
           ccache -s
           exit $rc
+      - name: Licence check — is AMD dxbc code linked?
+        if: success()
+        run: |
+          NM="$(ls -d $ANDROID_SDK_ROOT/ndk/$NDK_VERSION)/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$NM" -C build-android/libace360x.so > syms.txt || true
+          echo "Total symbols: $(wc -l < syms.txt)"
+          if grep -iE "dxbc|CalculateDXBCChecksum" syms.txt | head -20; then
+            echo "::warning::dxbc symbols are linked into libace360x.so (licence open, see docs/LICENSES.md)"
+          else
+            echo "No dxbc symbols linked."
+          fi
       - name: Save compiler cache
         if: always()
         uses: actions/cache/save@v4

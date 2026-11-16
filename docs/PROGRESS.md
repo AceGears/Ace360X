@@ -27,3 +27,27 @@
 ### Next priorities
 1. Confirm the APK installs/launches on the user's phone (closes Phase 2).
 2. Phase 3: add Xenia Canary as a pinned submodule; CMake build of the core for arm64-v8a.
+
+## 2026-11-16 (later) — Phase 3: Xenia Canary core on Android
+
+### Completed and verified (in CI, not on a device)
+- Xenia Canary `canary_experimental@28bc50db` compiles **and links** for arm64-v8a with NDK r29:
+  a64 JIT backend, PPC frontend, kernel/XAM HLE, VFS, Xenos GPU + Vulkan backend, APU with
+  FFmpeg XMA decoder (NEON asm), UI/ImGui, patcher. `libace360x.so` ≈ 24 MB; APK ≈ 50 MB.
+- 4 upstream patches (CMake Android branch, no SDL3, Android source bit-rot, shader script).
+- Shaders compiled to SPIR-V at build time with the LunarG Vulkan SDK 1.4.363.1.
+
+### Implemented but unverified (needs the user's phone)
+- Core self-test on the Device screen: reserve 4.5 GB guest address space, commit/access guest
+  pages, start the a64 JIT, translate + run a 3-instruction PowerPC function (expects 42).
+- Xenia Android init (`InitializeAndroidAppFromMainThread`) at app start.
+
+### Findings
+- Xeo (libaerto/xeo) does not build a CPU backend on ARM64 and stubs FFmpeg; not used.
+- `third_party/dxbc` (AMD, no licence grant) — CI now reports whether it is linked.
+- Upstream warnings are not fatal on Android yet (`XENIA_DISABLE_WERROR`); to be reviewed.
+
+### Next priorities
+1. User installs the APK and runs the self-test; record results in docs/hardware/.
+2. Phase 4: Vulkan surface from a SurfaceView, `Emulator` setup with the Vulkan graphics
+   system, launch a homebrew XEX, first guest frame.
