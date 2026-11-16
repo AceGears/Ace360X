@@ -22,10 +22,15 @@ disagree, fix one of them in the same change. Feasibility research: `docs/FEASIB
 ```
 app/                Kotlin + Jetpack Compose UI (no emulation logic), package com.acegears.ace360x
   core/NativeBridge.kt  the ONLY Kotlin side of JNI
-  ui/  library/  device/  (later: settings/ theme/ input/ overlay/)
+  ui/  library/  device/  emu/ (EmulatorActivity, GamepadInput/GamepadMapper)
+                    (later: settings/ theme/ overlay/)
+app/src/main/java/jp/xenia/emulator/  Kotlin port of upstream WindowedAppActivity/
+                    WindowSurfaceView — package/class names fixed by upstream's JNI
 native/             CMake root (built by Gradle for Android, standalone for host tests)
-  host/             jni_bridge.cpp (the ONLY C++ side of JNI), SAF fd I/O, Vulkan probe,
-                    format sniffer; later Oboe audio, input queue, thermal/ADPF, perf counters
+  host/             jni_bridge.cpp (our JNI), SAF fd I/O, Vulkan probe, format sniffer,
+                    core self-test, android_input_driver (hid), aaudio_audio_system (apu);
+                    later thermal/ADPF, perf counters. Upstream's own Android JNI
+                    (windowed_app_context_android.cc) is also exported.
   tests/            host-side C++ unit tests + libFuzzer targets
   xenia-upstream/   git submodule (xenia-canary, pinned commit); upstream commits never edited —
                     our changes are patch files applied at CMake configure time
@@ -187,4 +192,7 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   (incl. a64 JIT, Vulkan GPU, kernel, VFS, FFmpeg XMA) compiles for arm64-v8a in CI with 4
   patches; on-device core self-test (guest memory + JIT executes PowerPC code).
 - Verified: host C++ unit tests + fuzzing (format sniffer); CI compile of the full core.
-- Next: user runs APK + self-test on a phone; then Phase 4 (Vulkan surface, first guest frame).
+- Implemented (unverified on device): game launch from Library (EmulatorActivity in `:emu`
+  process hosting upstream EmulatorApp on a SurfaceView), SAF content:// launch (patch 0005),
+  Android controller input (0006), AAudio sound (0007).
+- Next: first on-device game launch by the user; fix what it shows; log export; touch controls.

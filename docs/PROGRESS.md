@@ -51,3 +51,31 @@
 1. User installs the APK and runs the self-test; record results in docs/hardware/.
 2. Phase 4: Vulkan surface from a SurfaceView, `Emulator` setup with the Vulkan graphics
    system, launch a homebrew XEX, first guest frame.
+
+## 2026-11-16 (evening) — Game launch path, controller input, sound
+
+### Implemented (CI-built, **not yet run on a device**)
+- **Launching games**: tapping an ISO or single-file STFS package (CON/LIVE/PIRS) in the Library
+  opens `EmulatorActivity` in a separate `:emu` process. It hosts upstream's own `EmulatorApp`
+  ("xenia" windowed app: emulator thread, Vulkan graphics system, ImGui window/menus) on a
+  native `SurfaceView`, via a Kotlin port of upstream's `WindowedAppActivity`.
+- **SAF game files**: patch 0005 lets Xenia open `content://` documents through the whole
+  launch path, so no storage permission is needed.
+- **Controller input**: `native/host/android_input_driver.cc` (Xenia `InputDriver`, 4 players,
+  rumble) + `GamepadMapper`/`GamepadInput` in Kotlin (patch 0006 registers `hid=android`).
+- **Sound**: `native/host/aaudio_audio_system.cc` (AAudio, low-latency, 5.1→stereo, reopen on
+  device change, silent fallback; patch 0007 registers `apu=aaudio`).
+- Xenia log written to the app's files dir (`xenia/xenia.log`) for diagnosis.
+
+### Known gaps
+- No on-screen touch controls yet (physical controller needed to play).
+- Loose XEX folders, multi-file GoD/SVOD and ZAR can't be launched from SAF yet.
+- No in-game overlay of our own; upstream's ImGui menus are what you see.
+- No log export UI yet.
+- Nothing about game compatibility or speed is known; all titles remain **Untested**.
+
+### Next priorities
+1. User test: launch a game, report what happens (screenshot + phone model), and run the
+   core self-test.
+2. Fix whatever the first device run shows; add log export so failures can be diagnosed.
+3. On-screen touch controls; XEX-folder launching via SAF trees.

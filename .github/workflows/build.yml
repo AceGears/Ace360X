@@ -95,6 +95,17 @@ jobs:
           tail -40 build.log
           ccache -s
           exit $rc
+      - name: JNI exports check
+        run: |
+          NM="$ANDROID_SDK_ROOT/ndk/$NDK_VERSION/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$NM" -D --defined-only build-android/libace360x.so | awk '{print $NF}' | grep '^Java_' | sort > exports.txt
+          cat exports.txt
+          missing=0
+          # Every Kotlin `external fun` must have an exported symbol.
+          for f in $(grep -rhoE 'external fun [a-zA-Z0-9_]+' app/src/main/java | awk '{print $3}' | sort -u); do
+            grep -qE "_${f}$" exports.txt || { echo "::error::No JNI export for external fun $f"; missing=1; }
+          done
+          exit $missing
       - name: Licence check — is AMD dxbc code linked?
         if: success()
         run: |
