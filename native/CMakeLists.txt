@@ -36,7 +36,40 @@ if(ANDROID)
       # Third-party libraries, mirroring upstream's xenia-app link list
       # (upstream libraries don't declare all of these themselves).
       aes_128 capstone fmt dxbc imgui libavcodec libavutil mspack snappy xxhash
-      glslang-spirv xbyak_aarch64 zstd zarchive zlib-ng pugixml)
+      glslang-spirv xbyak_aarch64 zstd zarchive zlib-ng pugixml
+      # Needed by upstream's app layer (xenia_main / emulator_window).
+      xenia-debug-ui xenia-hid-keyboard xenia-app-discord discord-rpc)
+
+    # Upstream's emulator app (EmulatorApp, EmulatorWindow, dialogs), compiled
+    # with exactly the definitions/options upstream uses for its own targets:
+    # some (e.g. IMGUI_USE_WCHAR32) change struct layouts and must match.
+    set(_xe "${CMAKE_CURRENT_SOURCE_DIR}/xenia-upstream")
+    get_directory_property(_xe_defs DIRECTORY xenia-upstream COMPILE_DEFINITIONS)
+    get_directory_property(_xe_opts DIRECTORY xenia-upstream COMPILE_OPTIONS)
+    add_library(ace_xenia_app OBJECT
+      ${_xe}/src/xenia/app/xenia_main.cc
+      ${_xe}/src/xenia/app/emulator_window.cc
+      ${_xe}/src/xenia/app/console_settings_dialog.cc
+      ${_xe}/src/xenia/app/content_list_dialog.cc
+      ${_xe}/src/xenia/app/profile_dialogs.cc)
+    target_compile_definitions(ace_xenia_app PRIVATE ${_xe_defs}
+      XBYAK_NO_OP_NAMES XBYAK_ENABLE_OMITTED_OPERAND)
+    target_compile_options(ace_xenia_app PRIVATE ${_xe_opts})
+    target_include_directories(ace_xenia_app PRIVATE
+      ${_xe} ${_xe}/src ${_xe}/third_party ${CMAKE_BINARY_DIR})
+    target_link_libraries(ace_xenia_app PRIVATE ${ACE_XENIA_LIBS})
+    list(APPEND ACE_XENIA_LIBS ace_xenia_app)
+
+    # JNI functions defined by upstream (windowed_app_context_android.cc) for
+    # jp.xenia.emulator.WindowedAppActivity live in a static archive and are
+    # not referenced from C++, so force the linker to keep them.
+    set(ACE_XENIA_JNI_SYMBOLS
+      Java_jp_xenia_emulator_WindowedAppActivity_initializeWindowedAppOnCreate
+      Java_jp_xenia_emulator_WindowedAppActivity_onDestroyNative
+      Java_jp_xenia_emulator_WindowedAppActivity_onWindowSurfaceLayoutChange
+      Java_jp_xenia_emulator_WindowedAppActivity_onWindowSurfaceMotionEvent
+      Java_jp_xenia_emulator_WindowedAppActivity_onWindowSurfaceChanged
+      Java_jp_xenia_emulator_WindowedAppActivity_paintWindow)
   endif()
 
   # Shared library loaded by NativeBridge.kt
@@ -45,6 +78,9 @@ if(ANDROID)
   set_target_properties(ace360x PROPERTIES CXX_EXTENSIONS OFF)
   target_link_libraries(ace360x PRIVATE ace_host_common vulkan log android ${ACE_XENIA_LIBS})
   if(ACE_WITH_XENIA)
+    foreach(_sym IN LISTS ACE_XENIA_JNI_SYMBOLS)
+      target_link_options(ace360x PRIVATE "-Wl,-u,${_sym}")
+    endforeach()
     target_sources(ace360x PRIVATE host/core_selftest.cpp)
     target_compile_definitions(ace360x PRIVATE ACE_WITH_XENIA=1)
     # Upstream headers as SYSTEM so our -Werror applies to our code only.

@@ -21,5 +21,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Game screen: separate process (see EmulatorActivity), landscape, full screen. -->
+        <activity
+            android:name=".emu.EmulatorActivity"
+            android:process=":emu"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|smallestScreenSize|density|uiMode"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Ace360X" />
     </application>
 </manifest>

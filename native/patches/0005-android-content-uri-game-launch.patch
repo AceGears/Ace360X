@@ -1,0 +1,221 @@
+diff --git a/src/xenia/app/emulator_window.cc b/src/xenia/app/emulator_window.cc
+index 9ae569f..16147a2 100644
+--- a/src/xenia/app/emulator_window.cc
++++ b/src/xenia/app/emulator_window.cc
+@@ -26,6 +26,7 @@
+ #include "xenia/base/clock.h"
+ #include "xenia/base/cvar.h"
+ #include "xenia/base/debugging.h"
++#include "xenia/base/filesystem.h"  // Ace360X
+ #include "xenia/base/logging.h"
+ #include "xenia/base/platform.h"
+ #include "xenia/base/profiling.h"
+@@ -2282,7 +2283,8 @@ std::string EmulatorWindow::CanonicalizeFileExtension(
+ xe::X_STATUS EmulatorWindow::RunTitle(
+     const std::filesystem::path& path_to_file) {
+   std::error_code ec = {};
+-  bool titleExists = std::filesystem::exists(path_to_file, ec);
++  // Ace360X: also accepts content:// URIs on Android.
++  bool titleExists = xe::filesystem::PathExistsAnyScheme(path_to_file);
+ 
+   if (path_to_file.empty() || !titleExists) {
+     std::string log_msg =
+@@ -2319,7 +2321,9 @@ xe::X_STATUS EmulatorWindow::RunTitle(
+ 
+   // Prevent crashing the emulator by not loading a game if a game is already
+   // loaded.
+-  auto abs_path = std::filesystem::absolute(path_to_file);
++  auto abs_path = xe::filesystem::IsNonHostPath(path_to_file)
++                      ? path_to_file
++                      : std::filesystem::absolute(path_to_file);
+ 
+   auto extension = CanonicalizeFileExtension(abs_path);
+ 
+diff --git a/src/xenia/app/xenia_main.cc b/src/xenia/app/xenia_main.cc
+index ccc537b..c89c8d7 100644
+--- a/src/xenia/app/xenia_main.cc
++++ b/src/xenia/app/xenia_main.cc
+@@ -19,6 +19,7 @@
+ #include "xenia/base/assert.h"
+ #include "xenia/base/cvar.h"
+ #include "xenia/base/debugging.h"
++#include "xenia/base/filesystem.h"  // Ace360X
+ #include "xenia/base/logging.h"
+ #include "xenia/base/platform.h"
+ #include "xenia/base/profiling.h"
+@@ -748,7 +749,9 @@ void EmulatorApp::EmulatorThread() {
+ 
+   if (!path.empty()) {
+     // Normalize the path and make absolute.
+-    auto abs_path = std::filesystem::absolute(path);
++    auto abs_path = xe::filesystem::IsNonHostPath(path)
++                        ? path
++                        : std::filesystem::absolute(path);  // Ace360X: URIs
+ 
+     result = app_context().CallInUIThread(
+         [this, abs_path]() { return emulator_window_->RunTitle(abs_path); });
+diff --git a/src/xenia/base/filesystem.cc b/src/xenia/base/filesystem.cc
+index 22c7d57..986314d 100644
+--- a/src/xenia/base/filesystem.cc
++++ b/src/xenia/base/filesystem.cc
+@@ -13,9 +13,62 @@
+ 
+ #include "xenia/base/string_util.h"
+ 
++#if XE_PLATFORM_ANDROID
++#include <sys/stat.h>
++#include <unistd.h>
++#endif  // XE_PLATFORM_ANDROID
++
+ namespace xe {
+ namespace filesystem {
+ 
++bool IsNonHostPath(const std::filesystem::path& path) {
++#if XE_PLATFORM_ANDROID
++  return IsAndroidContentUri(path.string());
++#else
++  (void)path;
++  return false;
++#endif
++}
++
++bool PathExistsAnyScheme(const std::filesystem::path& path) {
++#if XE_PLATFORM_ANDROID
++  if (IsAndroidContentUri(path.string())) {
++    int fd = OpenAndroidContentFileDescriptor(path.string(), "r");
++    if (fd < 0) {
++      return false;
++    }
++    close(fd);
++    return true;
++  }
++#endif
++  std::error_code ec;
++  return std::filesystem::exists(path, ec);
++}
++
++std::optional<uint64_t> FileSizeAnyScheme(const std::filesystem::path& path) {
++#if XE_PLATFORM_ANDROID
++  if (IsAndroidContentUri(path.string())) {
++    int fd = OpenAndroidContentFileDescriptor(path.string(), "r");
++    if (fd < 0) {
++      return std::nullopt;
++    }
++    struct stat st = {};
++    const bool ok = fstat(fd, &st) == 0;
++    close(fd);
++    if (!ok || st.st_size < 0) {
++      return std::nullopt;
++    }
++    return uint64_t(st.st_size);
++  }
++#endif
++  std::error_code ec;
++  const uintmax_t size = std::filesystem::file_size(path, ec);
++  if (ec) {
++    return std::nullopt;
++  }
++  return uint64_t(size);
++}
++
+ bool CreateParentFolder(const std::filesystem::path& path) {
+   if (path.has_parent_path()) {
+     auto parent_path = path.parent_path();
+diff --git a/src/xenia/base/filesystem.h b/src/xenia/base/filesystem.h
+index 9069cb5..fb89d0a 100644
+--- a/src/xenia/base/filesystem.h
++++ b/src/xenia/base/filesystem.h
+@@ -148,6 +148,13 @@ std::vector<FileInfo> FindFileWithName(const std::filesystem::path& path,
+ 
+ bool SetAttributes(const std::filesystem::path& path, uint64_t attributes);
+ 
++// Ace360X: helpers that accept host paths and, on Android, content:// URIs
++// (Storage Access Framework documents), so games can be launched without
++// broad storage permissions. Return false / nullopt on any error.
++bool IsNonHostPath(const std::filesystem::path& path);
++bool PathExistsAnyScheme(const std::filesystem::path& path);
++std::optional<uint64_t> FileSizeAnyScheme(const std::filesystem::path& path);
++
+ #if XE_PLATFORM_ANDROID
+ void AndroidInitialize();
+ void AndroidShutdown();
+diff --git a/src/xenia/base/filesystem_posix.cc b/src/xenia/base/filesystem_posix.cc
+index 43013c3..f6e4a2e 100644
+--- a/src/xenia/base/filesystem_posix.cc
++++ b/src/xenia/base/filesystem_posix.cc
+@@ -98,6 +98,22 @@ std::filesystem::path GetUserFolder() {
+ }
+ 
+ FILE* OpenFile(const std::filesystem::path& path, const std::string_view mode) {
++#if XE_PLATFORM_ANDROID
++  // Ace360X: Storage Access Framework documents.
++  if (IsAndroidContentUri(path.string())) {
++    const std::string mode_str(mode);
++    const bool write = mode_str.find_first_of("wa+") != std::string::npos;
++    int fd = OpenAndroidContentFileDescriptor(path.string(), write ? "rw" : "r");
++    if (fd < 0) {
++      return nullptr;
++    }
++    FILE* file = fdopen(fd, mode_str.c_str());
++    if (!file) {
++      close(fd);
++    }
++    return file;
++  }
++#endif  // XE_PLATFORM_ANDROID
+   return fopen(path.c_str(), std::string(mode).c_str());
+ }
+ 
+diff --git a/src/xenia/base/mapped_memory_posix.cc b/src/xenia/base/mapped_memory_posix.cc
+index db65075..70a0e29 100644
+--- a/src/xenia/base/mapped_memory_posix.cc
++++ b/src/xenia/base/mapped_memory_posix.cc
+@@ -97,6 +97,12 @@ class PosixMappedMemory : public MappedMemory {
+ std::unique_ptr<MappedMemory> MappedMemory::Open(
+     const std::filesystem::path& path, Mode mode, size_t offset,
+     size_t length) {
++#if XE_PLATFORM_ANDROID
++  // Ace360X: Storage Access Framework documents.
++  if (xe::filesystem::IsAndroidContentUri(path.string())) {
++    return OpenForAndroidContentUri(path.string(), mode, offset, length);
++  }
++#endif  // XE_PLATFORM_ANDROID
+   int open_flags = 0;
+   switch (mode) {
+     case Mode::kRead:
+diff --git a/src/xenia/emulator.cc b/src/xenia/emulator.cc
+index 3860a92..3d5f742 100644
+--- a/src/xenia/emulator.cc
++++ b/src/xenia/emulator.cc
+@@ -486,7 +486,8 @@ Emulator::FileSignatureType Emulator::GetFileSignature(
+     return FileSignatureType::Unknown;
+   }
+ 
+-  const uint64_t file_size = std::filesystem::file_size(path);
++  const uint64_t file_size =
++      xe::filesystem::FileSizeAnyScheme(path).value_or(0);  // Ace360X: URIs
+   constexpr int64_t header_size = 4;
+ 
+   if (file_size < header_size) {
+diff --git a/src/xenia/kernel/xam/xcontent/xcontent_package_container.cc b/src/xenia/kernel/xam/xcontent/xcontent_package_container.cc
+index ff3f47e..cb1d83f 100644
+--- a/src/xenia/kernel/xam/xcontent/xcontent_package_container.cc
++++ b/src/xenia/kernel/xam/xcontent/xcontent_package_container.cc
+@@ -75,7 +75,7 @@ ContentPackageContainer::~ContentPackageContainer() {
+ 
+ bool ContentPackageContainer::LoadPackage(
+     const std::filesystem::path& package_path, MappedMemory::Mode open_mode) {
+-  if (std::filesystem::file_size(package_path) <
++  if (xe::filesystem::FileSizeAnyScheme(package_path).value_or(0) <
+       sizeof(XContentHeader) + sizeof(XContentMetadata)) {
+     return false;
+   }
+@@ -235,7 +235,7 @@ size_t ContentPackageContainer::GetPackageSize() const {
+     return size;
+   }
+ 
+-  return std::filesystem::file_size(GetPackageHostPath());
++  return xe::filesystem::FileSizeAnyScheme(GetPackageHostPath()).value_or(0);
+ }
+ 
+ }  // namespace xam

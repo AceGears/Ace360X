@@ -21,6 +21,13 @@ class PureLogicTest {
         assertEquals(GameFormat.UNKNOWN, GameFormat.fromCode(99))
     }
 
+    @Test fun launchableFormats() {
+        assertTrue(GameFormat.DISC_IMAGE.isLaunchable)
+        assertTrue(GameFormat.STFS_LIVE.isLaunchable)
+        assertFalse(GameFormat.XEX2.isLaunchable)
+        assertFalse(GameFormat.UNKNOWN.isLaunchable)
+    }
+
     @Test fun scanCandidates() {
         assertTrue(ScanPolicy.isCandidate("Game.ISO", 1_000_000))
         assertTrue(ScanPolicy.isCandidate("default.xex", 10))

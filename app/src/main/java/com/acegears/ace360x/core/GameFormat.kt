@@ -11,6 +11,13 @@ enum class GameFormat(val code: Int, val label: String) {
 
     val isRecognised: Boolean get() = this != UNKNOWN
 
+    /**
+     * Formats the launch path supports from a single Storage Access Framework
+     * document (native/patches/0005). A loose XEX needs its whole folder, which
+     * isn't supported yet.
+     */
+    val isLaunchable: Boolean get() = this == DISC_IMAGE || this == STFS_CON || this == STFS_LIVE || this == STFS_PIRS
+
     companion object {
         fun fromCode(code: Int): GameFormat = entries.firstOrNull { it.code == code } ?: UNKNOWN
     }

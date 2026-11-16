@@ -33,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.acegears.ace360x.emu.EmulatorActivity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -112,8 +114,8 @@ private fun scanSummary(r: ScanReport): String = buildString {
 private fun StatusNote() {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Text(
-            "Development build. Ace360X can find and identify Xbox 360 game files, " +
-                "but the emulation core isn't integrated yet, so games can't be launched.",
+            "Experimental build. Tap a disc image or package to start it. Expect many games " +
+                "not to boot yet, and there is no sound or controller input in this version.",
             modifier = Modifier.padding(14.dp),
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -175,7 +177,12 @@ private fun folderLabel(uri: Uri): String =
 
 @Composable
 private fun GameRow(game: GameEntry) {
-    Card {
+    val context = LocalContext.current
+    val launchable = game.format.isLaunchable
+    Card(
+        onClick = { context.startActivity(EmulatorActivity.launchIntent(context, game.uri, game.displayName)) },
+        enabled = launchable,
+    ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
             Text(game.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -183,6 +190,13 @@ private fun GameRow(game: GameEntry) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (!launchable) {
+                Text(
+                    "Can't be started yet: a loose XEX needs its whole game folder.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
