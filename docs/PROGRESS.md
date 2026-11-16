@@ -8,7 +8,7 @@
   debug APK builds (~26 MB) and contains lib/arm64-v8a/libace360x.so.
 
 ### Implemented but unverified (no device yet)
-- Android project: Gradle 8.11.1, AGP 8.7.3, Kotlin 2.1, Compose, NDK 27, CMake.
+- Android project: Gradle 8.11.1, AGP 8.7.3, Kotlin 2.1, Compose, NDK r29, CMake.
 - Native library `libace360x.so`: JNI bridge, Vulkan capability probe, format sniffer over SAF file descriptors.
 - Library screen: add/remove SAF folders (persisted), recursive scan, format identification. No launching.
 - Device screen: provisional-minimum check, phone info, live thermal status/headroom, Vulkan features.

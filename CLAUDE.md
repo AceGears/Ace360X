@@ -53,7 +53,7 @@ docs/               feasibility, architecture, ADRs, reports
   a fallback path for devices lacking RuntimeShader (API < 33).
 
 ## 5. Build and dependencies
-- Android Studio (latest stable), AGP + Gradle wrapper, NDK r27+ (pinned in `gradle.properties`),
+- Android Studio (latest stable), AGP + Gradle wrapper, NDK r29 `29.0.14206865` (pinned in `app/build.gradle.kts` and CI),
   CMake 3.22+, JDK 17.
 - `./gradlew assembleDebug` must work from a clean clone after `git submodule update --init`.
 - All third-party versions pinned; licences listed in `docs/LICENSES.md` and shown in-app.

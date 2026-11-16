@@ -11,7 +11,7 @@ android {
     namespace = "com.acegears.ace360x"
     compileSdk = 35
     // Pinned NDK (CLAUDE.md §5). AGP installs it automatically if missing.
-    ndkVersion = "27.2.12479018"
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
         applicationId = "com.acegears.ace360x"
