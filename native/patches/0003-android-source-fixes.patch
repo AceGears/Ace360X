@@ -1,3 +1,18 @@
+diff --git a/src/xenia/base/filesystem_android.cc b/src/xenia/base/filesystem_android.cc
+index 7bff4f3..e9fb858 100644
+--- a/src/xenia/base/filesystem_android.cc
++++ b/src/xenia/base/filesystem_android.cc
+@@ -274,9 +274,7 @@ int OpenAndroidContentFileDescriptor(const std::string_view uri,
+   return file_descriptor;
+ }
+ 
+-bool SetAttributes(const std::filesystem::path& path, uint64_t attributes) {
+-  return false;
+-}
++// SetAttributes: the POSIX implementation in filesystem_posix.cc is used.
+ 
+ }  // namespace filesystem
+ }  // namespace xe
 diff --git a/src/xenia/base/mutex.cc b/src/xenia/base/mutex.cc
 index 09b671a..6a3a587 100644
 --- a/src/xenia/base/mutex.cc
