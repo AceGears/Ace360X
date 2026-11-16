@@ -255,7 +255,7 @@ X_STATUS AAudioAudioSystem::CreateDriver(size_t /*index*/, xe::threading::Semaph
     // No usable output: keep the game running silently, as the nop system does.
     XELOGW("AAudio: falling back to silent output");
     driver->Shutdown();
-    *out_driver = new NopAudioDriver(semaphore);
+    *out_driver = new nop::NopAudioDriver(semaphore);
     return X_STATUS_SUCCESS;
   }
   *out_driver = driver.release();
