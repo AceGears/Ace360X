@@ -1,0 +1,17 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+captures/
+.DS_Store
+build-host/
+corpus/
+crash-*
+leak-*
+timeout-*
+# Release keys must never be committed (ci/debug.keystore is debug-only and public on purpose)
+*.jks
+release.keystore
