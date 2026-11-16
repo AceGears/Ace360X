@@ -1,0 +1,13 @@
+diff --git a/third_party/CMakeLists.txt b/third_party/CMakeLists.txt
+index d9f5eaf..76d4176 100644
+--- a/third_party/CMakeLists.txt
++++ b/third_party/CMakeLists.txt
+@@ -401,6 +401,8 @@ if(SDL3_PKG_FOUND)
+   target_link_libraries(SDL3 INTERFACE PkgConfig::SDL3_PKG)
+ elseif(SDL3_FRAMEWORK)
+   target_link_libraries(SDL3 INTERFACE "${SDL3_FRAMEWORK}")
++elseif(ANDROID)
++  # Ace360X: SDL is not used on Android; leave the interface target empty.
+ else()
+   # Only the subsystems xenia uses: audio, events and gamepads, plus video for
+   # message boxes.

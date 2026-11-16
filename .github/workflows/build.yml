@@ -35,12 +35,77 @@ jobs:
           mkdir -p corpus
           ./build-host/format_sniffer_fuzzer corpus -max_total_time=120 -max_len=4096
 
-  android:
-    name: Android debug APK
+  core:
+    name: Xenia core (NDK arm64, all errors)
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 120
+    env:
+      NDK_VERSION: 27.2.12479018
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 2G
     steps:
       - uses: actions/checkout@v5
+      - name: Fetch Xenia sources
+        run: scripts/fetch-xenia-deps.sh
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build ccache glslang-tools spirv-tools
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-core-${{ hashFiles('.gitmodules', 'native/patches/**') }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-core-${{ hashFiles('.gitmodules', 'native/patches/**') }}-
+            ccache-core-
+      - name: Configure
+        run: |
+          NDK="$ANDROID_SDK_ROOT/ndk/$NDK_VERSION"
+          test -d "$NDK" || NDK="$ANDROID_NDK_LATEST_HOME"
+          echo "Using NDK: $NDK"
+          cmake -S native -B build-android -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      - name: Build (keep going past errors)
+        run: |
+          set +e
+          ninja -C build-android -k 0 ace360x > build.log 2>&1
+          rc=$?
+          echo "ninja exit code: $rc"
+          echo "::group::Unique errors"
+          grep -E "error:|undefined (symbol|reference)" build.log | sed -E 's/^.*xenia-upstream\///' | sort | uniq -c | sort -rn | head -150
+          echo "::endgroup::"
+          echo "::group::Warnings by flag"
+          grep -oE "\[-W[a-z0-9-]+\]" build.log | sort | uniq -c | sort -rn | head -40
+          echo "::endgroup::"
+          tail -40 build.log
+          ccache -s
+          exit $rc
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: core-build-log
+          path: build.log
+          if-no-files-found: ignore
+
+  android:
+    name: Android debug APK
+    needs: core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch Xenia sources
+        run: scripts/fetch-xenia-deps.sh
+      - name: Install shader tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq glslang-tools spirv-tools
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

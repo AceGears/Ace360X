@@ -23,7 +23,11 @@ android {
 
         ndk { abiFilters += "arm64-v8a" }
         externalNativeBuild {
-            cmake { arguments += listOf("-DANDROID_STL=c++_static") }
+            cmake {
+                arguments += listOf("-DANDROID_STL=c++_static")
+                // Only build our library and what it links; skips upstream tools/demos.
+                targets += "ace360x"
+            }
         }
     }
 

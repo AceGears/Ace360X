@@ -1,0 +1,4 @@
+[submodule "native/xenia-upstream"]
+	path = native/xenia-upstream
+	url = https://github.com/xenia-canary/xenia-canary
+	branch = canary_experimental

@@ -1,22 +1,38 @@
 cmake_minimum_required(VERSION 3.22)
-project(ace360x_native CXX)
+project(ace360x_native C CXX ASM)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(ACE_WARNINGS -Wall -Wextra -Wpedantic -Werror)
 
 # Platform-independent host code (compiled for Android and for host tests).
 add_library(ace_host_common STATIC host/format_sniffer.cpp)
 target_include_directories(ace_host_common PUBLIC host)
+set_target_properties(ace_host_common PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(ace_host_common PRIVATE ${ACE_WARNINGS})
 
 if(ANDROID)
+  # ---- Xenia Canary core (upstream CMake project + our patches) ----
+  option(ACE_WITH_XENIA "Build and link the Xenia Canary core" ON)
+  if(ACE_WITH_XENIA)
+    include(cmake/ApplyXeniaPatches.cmake)
+    set(XENIA_DISABLE_WERROR ON)  # see native/patches/README.md
+    add_subdirectory(xenia-upstream xenia EXCLUDE_FROM_ALL)
+    set(ACE_XENIA_LIBS
+      xenia-core xenia-cpu xenia-cpu-backend-a64 xenia-apu xenia-apu-nop
+      xenia-gpu xenia-gpu-null xenia-gpu-vulkan xenia-hid xenia-hid-nop
+      xenia-kernel xenia-vfs xenia-ui xenia-ui-vulkan xenia-patcher xenia-base)
+  endif()
+
   # Shared library loaded by NativeBridge.kt
   add_library(ace360x SHARED host/jni_bridge.cpp host/vulkan_probe.cpp)
   target_compile_options(ace360x PRIVATE ${ACE_WARNINGS})
-  target_link_libraries(ace360x PRIVATE ace_host_common vulkan log)
+  set_target_properties(ace360x PROPERTIES CXX_EXTENSIONS OFF)
+  target_link_libraries(ace360x PRIVATE ace_host_common vulkan log android ${ACE_XENIA_LIBS})
+  if(ACE_WITH_XENIA)
+    target_compile_definitions(ace360x PRIVATE ACE_WITH_XENIA=1)
+  endif()
   # 16 KB page-size compatibility (required for new Play submissions).
   target_link_options(ace360x PRIVATE "-Wl,-z,max-page-size=16384")
 else()
