@@ -1,0 +1,45 @@
+diff --git a/src/xenia/cpu/backend/a64/a64_sequences.cc b/src/xenia/cpu/backend/a64/a64_sequences.cc
+index f2ed09f..ca97a95 100644
+--- a/src/xenia/cpu/backend/a64/a64_sequences.cc
++++ b/src/xenia/cpu/backend/a64/a64_sequences.cc
+@@ -4258,6 +4258,22 @@ static void EmulateFres(void* /*ctx*/, void* data) {
+   std::memcpy(data, &value, sizeof(value));
+ }
+ 
++// The float64 sum converted to single rounding toward zero, as upstream's
++// x64 default (use_fast_dot_product) does; the console matches this in about
++// 97% of cases (x64's EmitVectorMultiplySum is the exact model). A sum that
++// overflows single when rounded to nearest stays infinite for the caller's
++// overflow check.
++static float DotProductToSingle(double sum) {
++  float nearest = static_cast<float>(sum);
++  if (std::isinf(nearest) || std::isnan(nearest)) {
++    return nearest;
++  }
++  if (std::fabs(static_cast<double>(nearest)) > std::fabs(sum)) {
++    return std::nextafter(nearest, 0.0f);
++  }
++  return nearest;
++}
++
+ // DOT_PRODUCT_3 (vmsum3fp): dot product of first 3 elements.
+ // Uses double-precision intermediates; overflow -> QNaN.
+ // Args: x0=PPCContext* (unused), x1=pointer to 2 consecutive vec128_t
+@@ -4270,7 +4286,7 @@ static void EmulateDotProduct3(void* /*ctx*/, void* vdata) {
+   double d1 = (double)src1.f32[1] * (double)src2.f32[1];
+   double d2 = (double)src1.f32[2] * (double)src2.f32[2];
+   double sum = d0 + d1 + d2;
+-  float result = (float)sum;
++  float result = DotProductToSingle(sum);
+   if (std::isinf(result)) {
+     uint32_t qnan = 0x7FC00000u;
+     memcpy(&result, &qnan, sizeof(result));
+@@ -4290,7 +4306,7 @@ static void EmulateDotProduct4(void* /*ctx*/, void* vdata) {
+   double d2 = (double)src1.f32[2] * (double)src2.f32[2];
+   double d3 = (double)src1.f32[3] * (double)src2.f32[3];
+   double sum = d0 + d1 + d2 + d3;
+-  float result = (float)sum;
++  float result = DotProductToSingle(sum);
+   if (std::isinf(result)) {
+     uint32_t qnan = 0x7FC00000u;
+     memcpy(&result, &qnan, sizeof(result));
