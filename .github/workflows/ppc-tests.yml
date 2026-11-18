@@ -131,8 +131,11 @@ jobs:
           sed -E 's/_[0-9].*$//' ../../failed-unique.txt | sort | uniq -c | sort -rn > ../../failed-by-instr.txt
           echo "Instructions with failures: $(wc -l < ../../failed-by-instr.txt)"
           cat ../../failed-by-instr.txt
-          echo "== First failure details =="
-          grep -m 40 -A3 -E "assert failed|TEST FAILED|FAILED" ../../ppc-tests.log | cut -c1-200
+          echo "== Sample failures per instruction (up to 4 each) =="
+          awk '{print $2}' ../../failed-by-instr.txt | while read -r instr; do
+            echo "--- $instr"
+            grep -m 4 -A2 -E "^\s*\[${instr}_[0-9][^]]*\] (Register|Memory) .*assert failed" ../../ppc-tests.log | cut -c1-200
+          done
           echo "exit=$rc" >> "$GITHUB_OUTPUT"
           exit $rc
 
