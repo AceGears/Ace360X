@@ -29,7 +29,8 @@ app/src/main/java/jp/xenia/emulator/  Kotlin port of upstream WindowedAppActivit
                     WindowSurfaceView — package/class names fixed by upstream's JNI
 native/             CMake root (built by Gradle for Android, standalone for host tests)
   host/             jni_bridge.cpp (our JNI), SAF fd I/O, Vulkan probe, format sniffer,
-                    core self-test, android_input_driver (hid), aaudio_audio_system (apu);
+                    core self-test, android_input_driver (hid), aaudio_audio_system (apu),
+                    saf_tree_provider (acetree:// SAF folders for xe::filesystem);
                     later thermal/ADPF, perf counters. Upstream's own Android JNI
                     (windowed_app_context_android.cc) is also exported.
   tests/            host-side C++ unit tests + libFuzzer targets
@@ -201,5 +202,6 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
 - Implemented (unverified on device): Settings tab (graphics presets, resolution scale, FXAA,
   CAS/FSR, aspect, mute, touch options, guest VSync), thermal notice, library cache/search/
   sort/favourites/playtime, quit confirmation.
-- Next: first on-device game launch by the user and their diagnostics report; fix what it shows;
-  SAF-tree VFS device for extracted games.
+- Implemented (unverified on device): extracted-game and GoD launch via `acetree://` SAF provider
+  (patches 0008/0009, native/host/saf_tree_provider.cc, emu/SafTree.kt).
+- Next: first on-device game launch by the user and their diagnostics report; fix what it shows.

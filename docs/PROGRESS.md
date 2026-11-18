@@ -122,3 +122,17 @@
 - Touch layout editing, analog touch triggers, controller remapping, per-game settings,
   in-game overlay of our own, cover art, the 12-theme engine, ADPF performance hints.
 - Any on-device result.
+
+## 2026-11-17 (night) — Extracted games and Games on Demand
+
+### Implemented (CI-built, not yet run on a device)
+- Extracted games (folder with `default.xex`) and Games on Demand (STFS header + `.data`
+  folder) launch from SAF folders through a new `acetree://` provider: upstream patches 0008
+  (generic `ExternalTreeProvider` hook in `xe::filesystem`) and 0009 (SVOD check), native
+  `saf_tree_provider.cc`, Kotlin `SafTree`. Design: docs/research/saf-tree-vfs.md.
+- Library shows extracted games and GoD titles by folder name; all recognised formats are now
+  launchable (rescan needed for entries cached before this build).
+
+### Unverified / risks
+- Mount speed of large extracted games over SAF (one query per directory) — unmeasured.
+- ZAR archives still go through a plain file path in zarchive and aren't covered.
