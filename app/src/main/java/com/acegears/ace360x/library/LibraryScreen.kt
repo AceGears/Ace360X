@@ -197,7 +197,7 @@ private fun SectionTitle(text: String) {
 
 @Composable
 private fun FolderRow(folder: Uri, missing: Boolean, onRemove: () -> Unit) {
-    Card {
+    AceCard {
         Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).padding(vertical = 12.dp)) {
                 Text(
