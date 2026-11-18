@@ -110,9 +110,10 @@ jobs:
           path: .ccache
           key: ccache-ppc-${{ hashFiles('.gitmodules', 'native/patches/**') }}-${{ github.run_id }}
 
+      # Gate: since patches 0010-0012 every case passes on ARM64 (see
+      # docs/reports/cpu/ppc-tests-2026-11-18.md), so any failure is a regression.
       - name: Run tests on the a64 backend
         id: run
-        continue-on-error: true
         working-directory: native/xenia-upstream
         run: |
           exe=$(find ../../build-ppc -type f -name xenia-cpu-ppc-tests -perm -u+x | head -1)

@@ -193,7 +193,10 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
 - Implemented (unverified on device): Phase 2 app; Phase 3 in progress — Xenia Canary core
   (incl. a64 JIT, Vulkan GPU, kernel, VFS, FFmpeg XMA) compiles for arm64-v8a in CI with 4
   patches; on-device core self-test (guest memory + JIT executes PowerPC code).
-- Verified: host C++ unit tests + fuzzing (format sniffer); CI compile of the full core.
+- Verified: host C++ unit tests + fuzzing (format sniffer); CI compile of the full core;
+  upstream PPC instruction tests on the a64 JIT on a real ARM64 CPU: 170,448/170,448 pass
+  after patches 0010–0012 (86.6 % before), gated in CI —
+  `docs/reports/cpu/ppc-tests-2026-11-18.md`. Phase 3 still needs "homebrew XEX boots".
 - Implemented (unverified on device): game launch from Library (EmulatorActivity in `:emu`
   process hosting upstream EmulatorApp on a SurfaceView), SAF content:// launch (patch 0005),
   Android controller input (0006), AAudio sound (0007).

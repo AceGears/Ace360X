@@ -136,3 +136,25 @@
 ### Unverified / risks
 - Mount speed of large extracted games over SAF (one query per directory) — unmeasured.
 - ZAR archives still go through a plain file path in zarchive and aren't covered.
+
+## 2026-11-18 — ARM64 CPU correctness
+
+### Verified (host, real ARM64 CPU in CI — not a phone)
+- Upstream's PPC instruction test suite on the a64 JIT: **170,448 / 170,448 pass**, up from
+  147,535 (86.6 %). Every failure was floating point. Report with CI run IDs:
+  `docs/reports/cpu/ppc-tests-2026-11-18.md`. The workflow is now a gate.
+- Fixes, as upstream patches to offer back:
+  - 0010: negated multiply-adds (`fnmadd`/`fnmsub`/`vnmsubfp`) returned un-negated results;
+    wrong default-NaN sign; wrong FMA NaN priority; wrong `vmaxfp`/`vminfp` NaN choice.
+  - 0011: bit-exact `fres`/`vrefp`/`vlogefp`/`vexptefp` via upstream's `ppc::Estimate*`.
+  - 0012: `vmsum3fp128`/`vmsum4fp128` truncate like upstream x64's default path.
+- The `vnmsubfp` sign bug alone hit 13,655 test cases. It is common in vector math, so it
+  probably affected any title that uses it on ARM64.
+
+### Not measured
+- Speed cost of 0011 (a native call per estimate instruction). A NEON table version can come
+  later, with before/after numbers.
+- Any of this on an Android device; whether any game boots.
+
+### Still needs the user
+- First on-device run: Device tab self-test, launch a game, share diagnostics.
