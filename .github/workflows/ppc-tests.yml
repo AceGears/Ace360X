@@ -1,0 +1,145 @@
+name: PPC instruction tests (ARM64)
+
+# Runs Xenia's PowerPC instruction test suite (xenia-cpu-ppc-tests) through the
+# a64 JIT backend on a real ARM64 CPU — the same backend games use on phones.
+# Desktop Linux build of upstream + our patches; toolchain mirrors upstream's
+# own Linux CI (clang 20 from apt.llvm.org on Ubuntu 24.04).
+# Results are reported, not enforced yet: upstream's a64 backend is known to be
+# incomplete, so failures are expected (CLAUDE.md §8, §20).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '.gitmodules'
+      - 'scripts/ci-build-ppc-binutils.sh'
+      - 'scripts/ci-gen-ppc-tests.sh'
+      - 'scripts/fetch-xenia-deps.sh'
+      - '.github/workflows/ppc-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ppc-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ppc-tests:
+    name: xenia-cpu-ppc-tests on ARM64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 150
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Fetch Xenia sources (desktop set)
+        run: ACE_FETCH_DESKTOP=1 scripts/fetch-xenia-deps.sh
+
+      - name: Install toolchain (clang 20, as upstream CI)
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo apt-add-repository -y "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-20 main"
+          sudo apt-get -y -qq update
+          sudo apt-get -y -qq install libc++-dev libc++abi-dev libgtk-3-dev libudev-dev libasound2-dev \
+            libpulse-dev libpipewire-0.3-dev libvulkan-dev libx11-xcb-dev clang-20 lld-20 ninja-build \
+            ccache texinfo flex bison
+          scripts/ci-install-vulkan-sdk.sh || true   # shader tools; x86-64 SDK may not run on ARM64
+          sudo apt-get -y -qq install glslang-tools spirv-tools
+
+      - name: Cache vmx128 binutils
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ppc-binutils
+          key: ppc-binutils-2.24-${{ runner.arch }}-${{ hashFiles('scripts/ci-build-ppc-binutils.sh') }}
+
+      - name: Build vmx128 binutils
+        run: scripts/ci-build-ppc-binutils.sh "$RUNNER_TEMP/ppc-binutils"
+
+      - name: Assemble PPC tests
+        run: scripts/ci-gen-ppc-tests.sh "$RUNNER_TEMP/ppc-binutils"
+
+      - name: Restore compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-ppc-${{ hashFiles('.gitmodules', 'native/patches/**') }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-ppc-${{ hashFiles('.gitmodules', 'native/patches/**') }}-
+            ccache-ppc-
+
+      - name: Configure (upstream CMake + our patches)
+        run: |
+          cmake -P native/cmake/ApplyXeniaPatches.cmake
+          mkdir -p build-ppc
+          (cd build-ppc && cmake -P ../native/cmake/XeniaVersion.cmake)
+          cmake -S native/xenia-upstream -B build-ppc -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DXENIA_BUILD_TESTS=ON \
+            -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DXENIA_DISABLE_WERROR=ON
+
+      - name: Build xenia-cpu-ppc-tests
+        run: |
+          set +e
+          ninja -C build-ppc -k 0 xenia-cpu-ppc-tests > build.log 2>&1
+          rc=$?
+          grep -E "error:|undefined (symbol|reference)" build.log | sort | uniq -c | sort -rn | head -60
+          tail -20 build.log
+          ccache -s | head -5
+          exit $rc
+
+      - name: Save compiler cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-ppc-${{ hashFiles('.gitmodules', 'native/patches/**') }}-${{ github.run_id }}
+
+      - name: Run tests on the a64 backend
+        id: run
+        continue-on-error: true
+        working-directory: native/xenia-upstream
+        run: |
+          exe=$(find ../../build-ppc -type f -name xenia-cpu-ppc-tests -perm -u+x | head -1)
+          echo "Test binary: $exe"
+          set +e
+          "$exe" --cpu=a64 > ../../ppc-tests.log 2>&1
+          rc=$?
+          set -e
+          tail -8 ../../ppc-tests.log
+          echo "exit=$rc" >> "$GITHUB_OUTPUT"
+          exit $rc
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Xenia PPC instruction tests — a64 backend on ARM64"
+            echo
+            echo "Upstream: \`$(git -C native/xenia-upstream rev-parse --short HEAD)\` + native/patches"
+            echo
+            echo '```'
+            grep -E "^(Total tests|Passed|Failed|Time):" ppc-tests.log || echo "(no summary — see log)"
+            echo '```'
+            echo
+            echo "Failing suites (first 60):"
+            echo '```'
+            grep -oE "^\s*\[[A-Za-z0-9_]+\]" ppc-tests.log | tr -d ' []' | sort -u | head -60
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: ppc-tests-log
+          path: |
+            ppc-tests.log
+            build.log
+          if-no-files-found: ignore
