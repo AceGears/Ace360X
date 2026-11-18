@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.acegears.ace360x.emu.GamepadMapper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -29,6 +30,8 @@ class SettingsRepository(private val context: Context) {
         val touchOpacity = floatPreferencesKey("touch_opacity")
         val touchScale = floatPreferencesKey("touch_scale")
         val touchDefault = stringPreferencesKey("touch_default")
+        val deadZone = floatPreferencesKey("stick_dead_zone")
+        val bindings = stringPreferencesKey("button_bindings")
     }
 
     val settings: Flow<EmulatorSettings> = context.settingsStore.data.map(::fromPrefs)
@@ -47,6 +50,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.touchOpacity] = s.touchOpacity
             prefs[Keys.touchScale] = s.touchScale
             prefs[Keys.touchDefault] = s.touchDefault.name
+            prefs[Keys.deadZone] = s.stickDeadZone
+            prefs[Keys.bindings] = GamepadMapper.encodeBindings(s.buttonBindings)
         }
     }
 
@@ -67,6 +72,9 @@ class SettingsRepository(private val context: Context) {
             touchScale = (p[Keys.touchScale] ?: d.touchScale)
                 .coerceIn(EmulatorSettings.MIN_TOUCH_SCALE, EmulatorSettings.MAX_TOUCH_SCALE),
             touchDefault = enumOr(p[Keys.touchDefault], d.touchDefault),
+            stickDeadZone = (p[Keys.deadZone] ?: d.stickDeadZone)
+                .coerceIn(EmulatorSettings.MIN_DEAD_ZONE, EmulatorSettings.MAX_DEAD_ZONE),
+            buttonBindings = GamepadMapper.decodeBindings(p[Keys.bindings]),
         )
     }
 

@@ -19,6 +19,9 @@ import com.acegears.ace360x.core.NativeBridge
  */
 class GamepadInput(
     private val context: Context,
+    /** Android key code → XInput bit(s); see GamepadMapper.lookupFor. */
+    private val keyLookup: Map<Int, Int> = GamepadMapper.lookupFor(GamepadMapper.DEFAULT_BINDINGS),
+    private val deadZone: Float = GamepadMapper.DEFAULT_DEAD_ZONE,
     /** Called (UI thread) the first time a physical controller is used while touch is active. */
     private val onPhysicalControllerUsed: () -> Unit = {},
 ) : InputManager.InputDeviceListener {
@@ -28,7 +31,7 @@ class GamepadInput(
         const val TOUCH_DEVICE = Int.MIN_VALUE
     }
 
-    private class Slot(var deviceId: Int) {
+    private inner class Slot(var deviceId: Int) {
         var keyButtons = 0
         var hatButtons = 0
         var digitalLT = false
@@ -42,8 +45,8 @@ class GamepadInput(
         var lastRumble = 0
 
         fun snapshot(): PadSnapshot {
-            val (tlx, tly) = GamepadMapper.stick(lx, ly)
-            val (trx, try_) = GamepadMapper.stick(rx, ry)
+            val (tlx, tly) = GamepadMapper.stick(lx, ly, deadZone)
+            val (trx, try_) = GamepadMapper.stick(rx, ry, deadZone)
             return PadSnapshot(
                 connected = true,
                 buttons = keyButtons or hatButtons,
@@ -117,7 +120,7 @@ class GamepadInput(
     /** Returns true if the event was a controller event and has been consumed. */
     fun onKeyEvent(event: KeyEvent): Boolean {
         if (!isGamepad(event.source)) return false
-        val bit = GamepadMapper.buttonForKey(event.keyCode)
+        val bit = keyLookup[event.keyCode] ?: 0
         val trigger = GamepadMapper.isDigitalTrigger(event.keyCode)
         if (bit == 0 && !trigger) return false
         val index = slotFor(event.deviceId) ?: return true

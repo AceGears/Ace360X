@@ -1,5 +1,6 @@
 package com.acegears.ace360x
 
+import com.acegears.ace360x.emu.GamepadMapper
 import com.acegears.ace360x.emu.ThermalMessages
 import com.acegears.ace360x.library.LibraryFilter
 import com.acegears.ace360x.library.PlayStat
@@ -85,5 +86,30 @@ class FeatureLogicTest {
         assertNull(ThermalMessages.forStatus(1))
         assertNotNull(ThermalMessages.forStatus(2))
         assertNotNull(ThermalMessages.forStatus(6))
+    }
+
+    @Test fun bindingsRoundTripAndLookup() {
+        val defaults = GamepadMapper.DEFAULT_BINDINGS
+        assertEquals(15, defaults.size)
+        assertEquals(defaults, GamepadMapper.decodeBindings(GamepadMapper.encodeBindings(defaults)))
+        assertEquals(defaults, GamepadMapper.decodeBindings(null))
+        assertEquals(defaults, GamepadMapper.decodeBindings("garbage;;1:x;99999:5"))   // ignored safely
+
+        // Swap A and B.
+        val swapped = defaults + (GamepadMapper.A to GamepadMapper.KEYCODE_BUTTON_B) + (GamepadMapper.B to GamepadMapper.KEYCODE_BUTTON_A)
+        val lookup = GamepadMapper.lookupFor(GamepadMapper.decodeBindings(GamepadMapper.encodeBindings(swapped)))
+        assertEquals(GamepadMapper.B, lookup[GamepadMapper.KEYCODE_BUTTON_A])
+        assertEquals(GamepadMapper.A, lookup[GamepadMapper.KEYCODE_BUTTON_B])
+
+        // Two buttons on one key press both.
+        val shared = defaults + (GamepadMapper.Y to GamepadMapper.KEYCODE_BUTTON_A)
+        assertEquals(GamepadMapper.A or GamepadMapper.Y, GamepadMapper.lookupFor(shared)[GamepadMapper.KEYCODE_BUTTON_A])
+    }
+
+    @Test fun defaultLookupMatchesLegacyMapping() {
+        val lookup = GamepadMapper.lookupFor(GamepadMapper.DEFAULT_BINDINGS)
+        listOf(96, 97, 99, 100, 102, 103, 106, 107, 108, 109, 110, 19, 20, 21, 22).forEach { key ->
+            assertEquals(GamepadMapper.buttonForKey(key), lookup[key])
+        }
     }
 }

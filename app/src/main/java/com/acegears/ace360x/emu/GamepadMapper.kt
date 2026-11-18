@@ -61,7 +61,56 @@ object GamepadMapper {
     /** Default stick dead zone (fraction of full deflection), radial. */
     const val DEFAULT_DEAD_ZONE = 0.12f
 
-    /** XInput button bit for a key code, or 0 if it isn't a mapped button. */
+    /** The 15 remappable Xbox buttons, in display order, with labels. */
+    val REMAPPABLE: List<Pair<Int, String>> = listOf(
+        A to "A", B to "B", X to "X", Y to "Y",
+        LEFT_SHOULDER to "LB", RIGHT_SHOULDER to "RB",
+        LEFT_THUMB to "Left stick click", RIGHT_THUMB to "Right stick click",
+        START to "Start", BACK to "Back", GUIDE to "Guide",
+        DPAD_UP to "D-pad up", DPAD_DOWN to "D-pad down", DPAD_LEFT to "D-pad left", DPAD_RIGHT to "D-pad right",
+    )
+
+    /** Default Xbox button → Android key code table. */
+    val DEFAULT_BINDINGS: Map<Int, Int> = REMAPPABLE.associate { (bit, _) ->
+        bit to (DEFAULT_KEY_FOR_BUTTON[bit] ?: 0)
+    }
+
+    private val DEFAULT_KEY_FOR_BUTTON: Map<Int, Int>
+        get() = mapOf(
+            A to KEYCODE_BUTTON_A, B to KEYCODE_BUTTON_B, X to KEYCODE_BUTTON_X, Y to KEYCODE_BUTTON_Y,
+            LEFT_SHOULDER to KEYCODE_BUTTON_L1, RIGHT_SHOULDER to KEYCODE_BUTTON_R1,
+            LEFT_THUMB to KEYCODE_BUTTON_THUMBL, RIGHT_THUMB to KEYCODE_BUTTON_THUMBR,
+            START to KEYCODE_BUTTON_START, BACK to KEYCODE_BUTTON_SELECT, GUIDE to KEYCODE_BUTTON_MODE,
+            DPAD_UP to KEYCODE_DPAD_UP, DPAD_DOWN to KEYCODE_DPAD_DOWN,
+            DPAD_LEFT to KEYCODE_DPAD_LEFT, DPAD_RIGHT to KEYCODE_DPAD_RIGHT,
+        )
+
+    /**
+     * Key code → XInput bit lookup for a binding table (Xbox bit → key code).
+     * If two buttons share a key, the key presses both.
+     */
+    fun lookupFor(bindings: Map<Int, Int>): Map<Int, Int> {
+        val out = HashMap<Int, Int>()
+        bindings.forEach { (bit, key) -> if (key != 0) out[key] = (out[key] ?: 0) or bit }
+        return out
+    }
+
+    /** "bit:key;bit:key" — compact persistence format. Unknown/garbled entries are ignored. */
+    fun encodeBindings(bindings: Map<Int, Int>): String =
+        bindings.entries.sortedBy { it.key }.joinToString(";") { "${it.key}:${it.value}" }
+
+    fun decodeBindings(text: String?): Map<Int, Int> {
+        val result = DEFAULT_BINDINGS.toMutableMap()
+        text?.split(';')?.forEach { pair ->
+            val parts = pair.split(':')
+            val bit = parts.getOrNull(0)?.toIntOrNull()
+            val key = parts.getOrNull(1)?.toIntOrNull()
+            if (bit != null && key != null && bit in result) result[bit] = key
+        }
+        return result
+    }
+
+    /** XInput button bit for a key code with the default bindings, or 0 if unmapped. */
     fun buttonForKey(keyCode: Int): Int = when (keyCode) {
         KEYCODE_BUTTON_A -> A
         KEYCODE_BUTTON_B -> B

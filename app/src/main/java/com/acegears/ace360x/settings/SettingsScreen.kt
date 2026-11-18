@@ -1,6 +1,16 @@
 package com.acegears.ace360x.settings
 
+import android.view.KeyEvent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import com.acegears.ace360x.emu.GamepadMapper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -46,6 +56,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     fun update(t: (EmulatorSettings) -> EmulatorSettings) = scope.launch { repo.update(t) }
     var confirmVsyncOff by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var capturing by remember { mutableStateOf<Pair<Int, String>?>(null) }
 
     Column(modifier.fillMaxSize()) {
         TopAppBar(title = { Text("Settings") })
@@ -99,6 +110,40 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 }
             }
             item {
+                Section("Controller") {
+                    SliderRow(
+                        "Stick dead zone",
+                        "${(settings.stickDeadZone * 100).roundToInt()}%",
+                        settings.stickDeadZone,
+                        EmulatorSettings.MIN_DEAD_ZONE..EmulatorSettings.MAX_DEAD_ZONE,
+                    ) { v -> update { it.copy(stickDeadZone = v) } }
+                    SubHeading("Button mapping (tap, then press a controller button)")
+                    GamepadMapper.REMAPPABLE.forEach { (bit, label) ->
+                        val key = settings.buttonBindings[bit] ?: 0
+                        val isDefault = key == GamepadMapper.DEFAULT_BINDINGS[bit]
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .clickable { capturing = bit to label }
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            Text(
+                                keyLabel(key) + if (isDefault) "" else "  (custom)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isDefault) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.secondary,
+                            )
+                        }
+                    }
+                    TextButton(
+                        onClick = { update { it.copy(buttonBindings = GamepadMapper.DEFAULT_BINDINGS) } },
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    ) { Text("Reset button mapping") }
+                }
+            }
+            item {
                 Section("Touch controls") {
                     SubHeading("When a game starts")
                     EmulatorSettings.TouchDefault.entries.forEach { td ->
@@ -130,6 +175,17 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+
+    capturing?.let { (bit, label) ->
+        KeyCaptureDialog(
+            buttonLabel = label,
+            onCaptured = { keyCode ->
+                capturing = null
+                update { it.copy(buttonBindings = it.buttonBindings + (bit to keyCode)) }
+            },
+            onDismiss = { capturing = null },
+        )
     }
 
     if (confirmVsyncOff) {
@@ -242,4 +298,34 @@ private fun SliderRow(
             valueRange = range,
         )
     }
+}
+
+private fun keyLabel(keyCode: Int): String =
+    if (keyCode == 0) "Not assigned"
+    else KeyEvent.keyCodeToString(keyCode).removePrefix("KEYCODE_").removePrefix("BUTTON_").replace('_', ' ')
+
+/** Waits for the next controller/keyboard key press and reports its key code. */
+@Composable
+private fun KeyCaptureDialog(buttonLabel: String, onCaptured: (Int) -> Unit, onDismiss: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Map \"$buttonLabel\"") },
+        text = {
+            Box(
+                Modifier
+                    .focusRequester(focus)
+                    .focusable()
+                    .onPreviewKeyEvent { e ->
+                        val code = e.nativeKeyEvent.keyCode
+                        // Back cancels (it can't be bound: it exits the game screen).
+                        if (code == KeyEvent.KEYCODE_BACK) return@onPreviewKeyEvent false
+                        if (e.type == KeyEventType.KeyDown) onCaptured(code)
+                        true
+                    },
+            ) { Text("Press the controller button to use for $buttonLabel.") }
+            LaunchedEffect(Unit) { focus.requestFocus() }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

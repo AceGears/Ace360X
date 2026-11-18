@@ -59,6 +59,8 @@ class EmulatorActivity : WindowedAppActivity() {
         private const val EXTRA_TOUCH_OPACITY = "com.acegears.ace360x.TOUCH_OPACITY"
         private const val EXTRA_TOUCH_SCALE = "com.acegears.ace360x.TOUCH_SCALE"
         private const val EXTRA_TOUCH_DEFAULT = "com.acegears.ace360x.TOUCH_DEFAULT"
+        private const val EXTRA_DEAD_ZONE = "com.acegears.ace360x.DEAD_ZONE"
+        private const val EXTRA_BINDINGS = "com.acegears.ace360x.BINDINGS"
 
         /** [target] is a content:// document URI or an acetree:// path (see SafTree). */
         fun launchIntent(
@@ -93,6 +95,8 @@ class EmulatorActivity : WindowedAppActivity() {
                 .putExtra(EXTRA_TOUCH_OPACITY, settings.touchOpacity)
                 .putExtra(EXTRA_TOUCH_SCALE, settings.touchScale)
                 .putExtra(EXTRA_TOUCH_DEFAULT, settings.touchDefault.name)
+                .putExtra(EXTRA_DEAD_ZONE, settings.stickDeadZone)
+                .putExtra(EXTRA_BINDINGS, GamepadMapper.encodeBindings(settings.buttonBindings))
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
@@ -147,7 +151,11 @@ class EmulatorActivity : WindowedAppActivity() {
             EmulatorSettings.TouchDefault.NEVER.name -> false
             else -> !hasPhysicalGamepad()
         }
-        gamepads = GamepadInput(this) {
+        gamepads = GamepadInput(
+            this,
+            keyLookup = GamepadMapper.lookupFor(GamepadMapper.decodeBindings(intent.getStringExtra(EXTRA_BINDINGS))),
+            deadZone = intent.getFloatExtra(EXTRA_DEAD_ZONE, GamepadMapper.DEFAULT_DEAD_ZONE),
+        ) {
             // A real controller took over player 1: hide the on-screen controls.
             touchVisible.value = false
         }

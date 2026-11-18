@@ -22,6 +22,10 @@ data class EmulatorSettings(
     val touchOpacity: Float = 0.75f,
     val touchScale: Float = 1.0f,
     val touchDefault: TouchDefault = TouchDefault.AUTO,
+    /** Physical controller stick dead zone (radial, fraction of full deflection). */
+    val stickDeadZone: Float = com.acegears.ace360x.emu.GamepadMapper.DEFAULT_DEAD_ZONE,
+    /** Xbox button bit → Android key code. */
+    val buttonBindings: Map<Int, Int> = com.acegears.ace360x.emu.GamepadMapper.DEFAULT_BINDINGS,
 ) {
     enum class AntiAliasing(val cvar: String, val label: String) {
         OFF("", "Off"),
@@ -81,5 +85,7 @@ data class EmulatorSettings(
         const val MIN_TOUCH_OPACITY = 0.2f
         const val MIN_TOUCH_SCALE = 0.7f
         const val MAX_TOUCH_SCALE = 1.4f
+        const val MIN_DEAD_ZONE = 0.02f
+        const val MAX_DEAD_ZONE = 0.35f
     }
 }
