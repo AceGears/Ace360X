@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 
 private val Context.libraryStore by preferencesDataStore(name = "library")
 private val FOLDERS_KEY = stringSetPreferencesKey("folder_uris")
+private val FAVORITES_KEY = stringSetPreferencesKey("favorite_uris")
 
 data class GameEntry(
     val uri: Uri,
@@ -42,6 +43,49 @@ class LibraryRepository(private val context: Context) {
 
     val folders: Flow<List<Uri>> = context.libraryStore.data.map { prefs ->
         prefs[FOLDERS_KEY].orEmpty().sorted().map(Uri::parse)
+    }
+
+    val favorites: Flow<Set<String>> = context.libraryStore.data.map { it[FAVORITES_KEY].orEmpty() }
+
+    suspend fun setFavorite(uri: Uri, favorite: Boolean) {
+        context.libraryStore.edit {
+            val cur = it[FAVORITES_KEY].orEmpty()
+            it[FAVORITES_KEY] = if (favorite) cur + uri.toString() else cur - uri.toString()
+        }
+    }
+
+    private val cacheFile get() = java.io.File(context.filesDir, "library_cache.json")
+
+    /** Last scan's games, so the library shows instantly on start. Blocking. */
+    fun loadCache(): List<GameEntry> = runCatching {
+        val arr = org.json.JSONArray(cacheFile.readText())
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            GameEntry(
+                uri = Uri.parse(o.getString("uri")),
+                displayName = o.getString("name"),
+                sizeBytes = o.getLong("size"),
+                format = GameFormat.fromCode(o.getInt("format")),
+                folderUri = Uri.parse(o.getString("folder")),
+            )
+        }.filter { it.format.isRecognised }
+    }.getOrDefault(emptyList())
+
+    /** Blocking. Write-then-rename so a crash can't leave a corrupt cache. */
+    fun saveCache(games: List<GameEntry>) {
+        runCatching {
+            val arr = org.json.JSONArray()
+            games.forEach { g ->
+                arr.put(
+                    org.json.JSONObject()
+                        .put("uri", g.uri.toString()).put("name", g.displayName).put("size", g.sizeBytes)
+                        .put("format", g.format.code).put("folder", g.folderUri.toString()),
+                )
+            }
+            val tmp = java.io.File(cacheFile.parentFile, cacheFile.name + ".tmp")
+            tmp.writeText(arr.toString())
+            tmp.renameTo(cacheFile)
+        }
     }
 
     suspend fun addFolder(treeUri: Uri) {

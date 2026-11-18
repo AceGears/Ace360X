@@ -31,7 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -103,7 +106,16 @@ private val LabelColor = Color(0xEEFFFFFF)
  * touches elsewhere fall through to the emulator surface (Xenia's menus).
  */
 @Composable
-fun TouchControlsOverlay(state: TouchPadState, opacity: Float = 0.75f) {
+fun TouchControlsOverlay(state: TouchPadState, opacity: Float = 0.75f, scale: Float = 1f) {
+    // Scaling density scales every control size and spacing uniformly.
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density * scale, density.fontScale)) {
+        ControlsLayout(state, opacity)
+    }
+}
+
+@Composable
+private fun ControlsLayout(state: TouchPadState, opacity: Float) {
     Box(Modifier.fillMaxSize().alpha(opacity).padding(horizontal = 24.dp, vertical = 16.dp)) {
         // Shoulders and triggers.
         Column(Modifier.align(Alignment.TopStart), verticalArrangement = Arrangement.spacedBy(8.dp)) {

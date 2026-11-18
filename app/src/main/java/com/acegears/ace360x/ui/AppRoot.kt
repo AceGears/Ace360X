@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
+import com.acegears.ace360x.settings.SettingsScreen
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,6 +25,7 @@ import com.acegears.ace360x.library.LibraryScreen
 private enum class Tab(val label: String, val icon: ImageVector) {
     LIBRARY("Library", Icons.AutoMirrored.Filled.List),
     DEVICE("Device", Icons.Filled.Build),
+    SETTINGS("Settings", Icons.Filled.Settings),
     ABOUT("About", Icons.Filled.Info),
 }
 
@@ -47,6 +50,7 @@ fun AppRoot() {
         when (tab) {
             Tab.LIBRARY -> LibraryScreen(modifier)
             Tab.DEVICE -> DeviceScreen(modifier)
+            Tab.SETTINGS -> SettingsScreen(modifier)
             Tab.ABOUT -> AboutScreen(modifier)
         }
     }

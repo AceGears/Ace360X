@@ -1,6 +1,20 @@
 package com.acegears.ace360x.library
 
 import android.net.Uri
+import android.text.format.DateUtils
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.acegears.ace360x.settings.SettingsRepository
+import kotlinx.coroutines.launch
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +65,12 @@ fun LibraryScreen(modifier: Modifier = Modifier, vm: LibraryViewModel = viewMode
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showExitBanner by remember { mutableStateOf(Diagnostics.consumeUnexpectedExit(context)) }
+    // Play stats are written by the game process; re-read them when we come back.
+    LifecycleResumeEffect(Unit) {
+        vm.refreshStats()
+        if (Diagnostics.consumeUnexpectedExit(context)) showExitBanner = true
+        onPauseOrDispose { }
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.addFolder(uri)
     }
@@ -86,17 +106,36 @@ fun LibraryScreen(modifier: Modifier = Modifier, vm: LibraryViewModel = viewMode
                     val missing = state.report?.missingFolders?.contains(folder) == true
                     FolderRow(folder, missing, onRemove = { vm.removeFolder(folder) })
                 }
-                val report = state.report
-                if (report != null) {
-                    item {
-                        SectionTitle("Games (${report.games.size})")
+                item {
+                    SectionTitle("Games (${state.allGames.size})")
+                    state.report?.let {
                         Text(
-                            scanSummary(report),
+                            scanSummary(it),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    }
-                    items(report.games, key = { it.uri.toString() }) { GameRow(it) }
+                    } ?: if (state.cachedGames.isNotEmpty()) {
+                        Text(
+                            "From the last scan — checking folders…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else Unit
+                }
+                if (state.allGames.isNotEmpty()) {
+                    item { LibraryControls(state, vm) }
+                }
+                val games = state.visibleGames
+                if (state.allGames.isNotEmpty() && games.isEmpty()) {
+                    item { Text("No games match.", style = MaterialTheme.typography.bodyMedium) }
+                }
+                items(games, key = { it.uri.toString() }) { game ->
+                    GameRow(
+                        game = game,
+                        favorite = game.uri.toString() in state.favorites,
+                        stat = state.stats[game.uri.toString()] ?: PlayStat(),
+                        onToggleFavorite = { vm.toggleFavorite(game) },
+                    )
                 }
             }
         }
@@ -184,26 +223,93 @@ private fun FolderRow(folder: Uri, missing: Boolean, onRemove: () -> Unit) {
 private fun folderLabel(uri: Uri): String =
     uri.lastPathSegment?.substringAfterLast(':')?.ifBlank { null } ?: uri.toString()
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GameRow(game: GameEntry) {
+private fun LibraryControls(state: LibraryUiState, vm: LibraryViewModel) {
+    var sortOpen by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(
+            value = state.query,
+            onValueChange = vm::setQuery,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search games") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = state.favoritesOnly,
+                onClick = { vm.setFavoritesOnly(!state.favoritesOnly) },
+                label = { Text("Favourites") },
+                leadingIcon = { Icon(Icons.Filled.Star, contentDescription = null) },
+            )
+            Box {
+                AssistChip(onClick = { sortOpen = true }, label = { Text("Sort: ${state.sort.label}") })
+                DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
+                    SortMode.entries.forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(mode.label) },
+                            onClick = {
+                                vm.setSort(mode)
+                                sortOpen = false
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun lastPlayedLabel(millis: Long): String? {
+    if (millis <= 0) return null
+    return "Last played " + DateUtils.getRelativeTimeSpanString(
+        millis, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS,
+    )
+}
+
+@Composable
+private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggleFavorite: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val launchable = game.format.isLaunchable
     Card(
-        onClick = { context.startActivity(EmulatorActivity.launchIntent(context, game.uri, game.displayName)) },
+        onClick = {
+            scope.launch {
+                val settings = SettingsRepository(context.applicationContext).current()
+                context.startActivity(EmulatorActivity.launchIntent(context, game.uri, game.displayName, settings))
+            }
+        },
         enabled = launchable,
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text(game.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                "${game.format.label} · ${ScanPolicy.formatSize(game.sizeBytes)} · Untested",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (!launchable) {
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(vertical = 12.dp)) {
+                Text(game.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Can't be started yet: a loose XEX needs its whole game folder.",
+                    "${game.format.label} · ${ScanPolicy.formatSize(game.sizeBytes)} · Untested",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                val played = listOfNotNull(
+                    lastPlayedLabel(stat.lastPlayedMillis),
+                    stat.totalSeconds.takeIf { it > 0 }?.let { "played " + PlayStats.formatPlaytime(it) },
+                ).joinToString(" · ")
+                if (played.isNotEmpty()) {
+                    Text(played, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (!launchable) {
+                    Text(
+                        "Can't be started yet: a loose XEX needs its whole game folder.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    if (favorite) Icons.Filled.Star else Icons.Outlined.Star,
+                    contentDescription = if (favorite) "Remove from favourites" else "Add to favourites",
+                    tint = if (favorite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
