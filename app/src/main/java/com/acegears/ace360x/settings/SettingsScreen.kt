@@ -1,5 +1,10 @@
 package com.acegears.ace360x.settings
 
+import com.acegears.ace360x.theme.AppearanceSection
+import com.acegears.ace360x.theme.AceSlider
+import com.acegears.ace360x.theme.AceSwitch
+import com.acegears.ace360x.theme.AceDialog
+import com.acegears.ace360x.theme.AceCard
 import android.view.KeyEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -21,13 +26,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -61,9 +62,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize()) {
         TopAppBar(title = { Text("Settings") })
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { AppearanceSection() }
             item {
                 Text(
-                    "Changes apply the next time you start a game.",
+                    "Emulation settings below apply the next time you start a game.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -189,7 +191,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
 
     if (confirmVsyncOff) {
-        AlertDialog(
+        AceDialog(
             onDismissRequest = { confirmVsyncOff = false },
             title = { Text("Turn off guest VSync?") },
             text = { Text("Many games will run at the wrong speed. This is mainly useful for testing.") },
@@ -203,7 +205,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         )
     }
     if (confirmReset) {
-        AlertDialog(
+        AceDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text("Restore default settings?") },
             confirmButton = {
@@ -219,7 +221,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    AceCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
             content()
@@ -273,7 +275,7 @@ private fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChan
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Switch(checked = checked, onCheckedChange = null)
+        AceSwitch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -291,7 +293,7 @@ private fun SliderRow(
             Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Text(valueLabel, style = MaterialTheme.typography.bodyMedium)
         }
-        Slider(
+        AceSlider(
             value = local,
             onValueChange = { local = it },
             onValueChangeFinished = { onChange(local) },
@@ -308,7 +310,7 @@ private fun keyLabel(keyCode: Int): String =
 @Composable
 private fun KeyCaptureDialog(buttonLabel: String, onCaptured: (Int) -> Unit, onDismiss: () -> Unit) {
     val focus = remember { FocusRequester() }
-    AlertDialog(
+    AceDialog(
         onDismissRequest = onDismiss,
         title = { Text("Map \"$buttonLabel\"") },
         text = {

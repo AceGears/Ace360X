@@ -1,5 +1,6 @@
 package com.acegears.ace360x.device
 
+import com.acegears.ace360x.theme.AceCard
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -147,7 +147,7 @@ private fun VulkanCard(vk: JSONObject?) {
 
 @Composable
 private fun InfoCard(title: String, content: @Composable () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    AceCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             content()

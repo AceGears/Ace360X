@@ -1,5 +1,7 @@
 package com.acegears.ace360x.device
 
+import com.acegears.ace360x.theme.AceCircularProgress
+import com.acegears.ace360x.theme.AceCard
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,8 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +57,7 @@ fun CoreSelfTestCard() {
         mutableStateOf(if (crashed) SelfTestState.CrashedLastTime else SelfTestState.Idle)
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    AceCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Emulation core self-test", style = MaterialTheme.typography.titleSmall)
             Text(
@@ -90,7 +90,7 @@ fun CoreSelfTestCard() {
                     },
                 ) { Text(if (state is SelfTestState.Done) "Run again" else "Run self-test") }
                 if (state == SelfTestState.Running) {
-                    CircularProgressIndicator(Modifier.padding(start = 12.dp).padding(4.dp))
+                    AceCircularProgress(Modifier.padding(start = 12.dp).padding(4.dp))
                 }
             }
             if (!NativeBridge.hasCore) {

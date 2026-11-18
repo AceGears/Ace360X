@@ -1,14 +1,13 @@
 package com.acegears.ace360x.diag
 
+import com.acegears.ace360x.theme.AceCircularProgress
+import com.acegears.ace360x.theme.AceCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,7 +46,7 @@ fun ShareDiagnosticsButton(label: String = "Share diagnostics") {
                 }
             },
         ) { Text(label) }
-        if (busy) CircularProgressIndicator(Modifier.padding(start = 12.dp))
+        if (busy) AceCircularProgress(Modifier.padding(start = 12.dp))
     }
     error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 }
@@ -55,7 +54,10 @@ fun ShareDiagnosticsButton(label: String = "Share diagnostics") {
 /** Shown on the Library when the last game session didn't close normally. */
 @Composable
 fun UnexpectedExitBanner(onDismiss: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+    AceCard(
+        containerColor = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+    ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "The last game session ended unexpectedly (crash, or closed by Android).",

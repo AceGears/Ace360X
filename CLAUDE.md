@@ -24,7 +24,9 @@ app/                Kotlin + Jetpack Compose UI (no emulation logic), package co
   core/NativeBridge.kt  the ONLY Kotlin side of JNI
   ui/  library/  device/  diag/ (Diagnostics report + share)  settings/ (EmulatorSettings → cvars)
   emu/ (EmulatorActivity, GamepadInput/GamepadMapper, TouchControls)
-                    (later: settings/ theme/ overlay/)
+  theme/ (ThemeSpec tokens + 12 Themes + WCAG ThemeChecks [pure Kotlin]; AceTheme,
+          Ambiance, ThemedComponents, AppearanceSection, ThemeRepository [Compose/DataStore])
+                    (later: overlay/)
 app/src/main/java/jp/xenia/emulator/  Kotlin port of upstream WindowedAppActivity/
                     WindowSurfaceView — package/class names fixed by upstream's JNI
 native/             CMake root (built by Gradle for Android, standalone for host tests)
@@ -207,4 +209,8 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   sort/favourites/playtime, quit confirmation.
 - Implemented (unverified on device): extracted-game and GoD launch via `acetree://` SAF provider
   (patches 0008/0009, native/host/saf_tree_provider.cc, emu/SafTree.kt).
+- Implemented (unverified on device): theme engine — 12 themes (palette, type, shape,
+  elevation, motion tokens, icon style, ambiance renderer, component overrides), accent/
+  ambiance/motion/corner customisation stored as a versioned diff, WCAG AA JVM test
+  (`ThemeTest`). Visual review screenshots (Phase 9) need a device.
 - Next: first on-device game launch by the user and their diagnostics report; fix what it shows.

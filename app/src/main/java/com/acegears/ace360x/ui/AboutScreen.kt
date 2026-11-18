@@ -1,5 +1,6 @@
 package com.acegears.ace360x.ui
 
+import com.acegears.ace360x.theme.AceCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,7 +53,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                 )
             }
             item {
-                Card(Modifier.fillMaxWidth()) {
+                AceCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp)) {
                         Text("Diagnostics", style = MaterialTheme.typography.titleSmall)
                         Text(
@@ -69,7 +69,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             }
             sections.forEach { (title, body) ->
                 item {
-                    Card(Modifier.fillMaxWidth()) {
+                    AceCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(14.dp)) {
                             Text(title, style = MaterialTheme.typography.titleSmall)
                             Text(body, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))

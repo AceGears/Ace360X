@@ -1,9 +1,14 @@
 package com.acegears.ace360x.library
 
+import kotlinx.coroutines.flow.first
+import com.acegears.ace360x.theme.ThemeRepository
+import com.acegears.ace360x.theme.AceIcons
+import com.acegears.ace360x.theme.AceDialog
+import com.acegears.ace360x.theme.AceLinearProgress
+import com.acegears.ace360x.theme.AceCard
 import android.net.Uri
 import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AssistChip
@@ -29,16 +34,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -81,15 +79,15 @@ fun LibraryScreen(modifier: Modifier = Modifier, vm: LibraryViewModel = viewMode
             actions = {
                 if (state.folders.isNotEmpty()) {
                     IconButton(onClick = vm::rescan, enabled = !state.scanning) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Rescan folders")
+                        Icon(AceIcons.Refresh, contentDescription = "Rescan folders")
                     }
                 }
                 IconButton(onClick = { picker.launch(null) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add game folder")
+                    Icon(AceIcons.Add, contentDescription = "Add game folder")
                 }
             },
         )
-        if (state.scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (state.scanning) AceLinearProgress(Modifier.fillMaxWidth())
 
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
@@ -142,7 +140,7 @@ fun LibraryScreen(modifier: Modifier = Modifier, vm: LibraryViewModel = viewMode
     }
 
     state.error?.let { message ->
-        AlertDialog(
+        AceDialog(
             onDismissRequest = vm::dismissError,
             confirmButton = { TextButton(onClick = vm::dismissError) { Text("OK") } },
             title = { Text("Library") },
@@ -159,7 +157,10 @@ private fun scanSummary(r: ScanReport): String = buildString {
 
 @Composable
 private fun StatusNote() {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    AceCard(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
         Text(
             "Experimental build. Tap a disc image or package to start it. Expect many games " +
                 "not to boot or to run slowly. Connect a Bluetooth/USB controller to play; " +
@@ -214,7 +215,7 @@ private fun FolderRow(folder: Uri, missing: Boolean, onRemove: () -> Unit) {
                 }
             }
             IconButton(onClick = onRemove) {
-                Icon(Icons.Filled.Close, contentDescription = "Remove folder from library (files are not deleted)")
+                Icon(AceIcons.Close, contentDescription = "Remove folder from library (files are not deleted)")
             }
         }
     }
@@ -234,7 +235,7 @@ private fun LibraryControls(state: LibraryUiState, vm: LibraryViewModel) {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             placeholder = { Text("Search games") },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            leadingIcon = { Icon(AceIcons.Search, contentDescription = null) },
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -274,13 +275,16 @@ private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggle
     val scope = rememberCoroutineScope()
     val target = game.launchTarget()
     val launchable = target != null
-    Card(
+    AceCard(
         onClick = {
             scope.launch {
                 val settings = SettingsRepository(context.applicationContext).current()
+                val theme = ThemeRepository(context.applicationContext).customization.first()
                 val t = target ?: return@launch
                 context.startActivity(
-                    EmulatorActivity.launchIntent(context, t, game.displayName, settings, statsKey = game.uri.toString()),
+                    EmulatorActivity.launchIntent(
+                        context, t, game.displayName, settings, statsKey = game.uri.toString(), theme = theme,
+                    ),
                 )
             }
         },

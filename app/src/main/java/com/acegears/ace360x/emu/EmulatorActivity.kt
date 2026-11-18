@@ -1,5 +1,8 @@
 package com.acegears.ace360x.emu
 
+import com.acegears.ace360x.theme.ThemeCustomization
+import com.acegears.ace360x.theme.AceTheme
+import com.acegears.ace360x.theme.AceDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -16,7 +19,6 @@ import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.activity.OnBackPressedCallback
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.padding
@@ -61,6 +63,7 @@ class EmulatorActivity : WindowedAppActivity() {
         private const val EXTRA_TOUCH_DEFAULT = "com.acegears.ace360x.TOUCH_DEFAULT"
         private const val EXTRA_DEAD_ZONE = "com.acegears.ace360x.DEAD_ZONE"
         private const val EXTRA_BINDINGS = "com.acegears.ace360x.BINDINGS"
+        private const val EXTRA_THEME = "com.acegears.ace360x.THEME"
 
         /** [target] is a content:// document URI or an acetree:// path (see SafTree). */
         fun launchIntent(
@@ -69,6 +72,7 @@ class EmulatorActivity : WindowedAppActivity() {
             displayName: String,
             settings: EmulatorSettings,
             statsKey: String = target,
+            theme: ThemeCustomization = ThemeCustomization(),
         ): Intent {
             val storage = File(context.filesDir, "xenia").apply { mkdirs() }
             val cvars = Bundle().apply {
@@ -97,6 +101,7 @@ class EmulatorActivity : WindowedAppActivity() {
                 .putExtra(EXTRA_TOUCH_DEFAULT, settings.touchDefault.name)
                 .putExtra(EXTRA_DEAD_ZONE, settings.stickDeadZone)
                 .putExtra(EXTRA_BINDINGS, GamepadMapper.encodeBindings(settings.buttonBindings))
+                .putExtra(EXTRA_THEME, theme.encode())
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
@@ -162,13 +167,16 @@ class EmulatorActivity : WindowedAppActivity() {
         val touchState = TouchPadState { gamepads.onTouchState(it) }
 
         val surfaceView = WindowSurfaceView(this)
+        // The game process can't read the main process's DataStore; the theme comes in the Intent.
+        val theme = ThemeCustomization.decode(intent.getStringExtra(EXTRA_THEME))
         val overlay = ComposeView(this).apply {
             setContent {
+              AceTheme(theme) {
                 Box(Modifier.fillMaxSize()) {
                     if (touchVisible.value) TouchControlsOverlay(touchState, touchOpacity, touchScale)
                     ThermalNotice(thermalStatus.intValue, Modifier.align(Alignment.TopStart).padding(top = 48.dp, start = 12.dp))
                     if (confirmExit.value) {
-                        AlertDialog(
+                        AceDialog(
                             onDismissRequest = { confirmExit.value = false },
                             title = { Text("Quit game?") },
                             text = { Text("Progress since your last in-game save will be lost.") },
@@ -186,6 +194,7 @@ class EmulatorActivity : WindowedAppActivity() {
                         Text(if (touchVisible.value) "Hide controls" else "Show controls", color = Color.White)
                     }
                 }
+              }
             }
         }
         val root = FrameLayout(this).apply {
