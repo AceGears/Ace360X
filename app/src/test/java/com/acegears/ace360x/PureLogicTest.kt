@@ -3,6 +3,9 @@ package com.acegears.ace360x
 import com.acegears.ace360x.core.GameFormat
 import com.acegears.ace360x.device.DeviceChecks
 import com.acegears.ace360x.emu.GamepadMapper
+import com.acegears.ace360x.emu.TouchMath
+import com.acegears.ace360x.emu.TouchPadState
+import com.acegears.ace360x.emu.PadSnapshot
 import com.acegears.ace360x.library.ScanPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -83,5 +86,27 @@ class PureLogicTest {
     @Test fun hatToDpad() {
         assertEquals(GamepadMapper.DPAD_UP or GamepadMapper.DPAD_LEFT, GamepadMapper.hatButtons(-1f, -1f))
         assertEquals(0, GamepadMapper.hatButtons(0f, 0f))
+    }
+
+    @Test fun touchStickClamp() {
+        assertEquals(0.5f to 0f, TouchMath.stickVector(50f, 0f, 100f))
+        val (x, y) = TouchMath.stickVector(300f, 400f, 100f)   // far outside: unit circle
+        assertEquals(0.6f, x, 1e-4f)
+        assertEquals(0.8f, y, 1e-4f)
+        assertEquals(0f to 0f, TouchMath.stickVector(10f, 10f, 0f))
+    }
+
+    @Test fun touchPadStateEmitsSnapshots() {
+        var last = PadSnapshot()
+        val pad = TouchPadState { last = it }
+        pad.setButton(GamepadMapper.A, true)
+        assertEquals(GamepadMapper.A, last.buttons)
+        pad.setTrigger(leftTrigger = false, down = true)
+        assertEquals(255, last.rightTrigger)
+        pad.setStick(leftStick = true, v = 0f to -1f)        // finger pushed up
+        assertEquals(32767, last.thumbLY)
+        pad.setButton(GamepadMapper.A, false)
+        assertEquals(0, last.buttons)
+        assertTrue(last.connected)
     }
 }

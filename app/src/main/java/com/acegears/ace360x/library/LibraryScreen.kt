@@ -34,7 +34,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.acegears.ace360x.diag.Diagnostics
+import com.acegears.ace360x.diag.UnexpectedExitBanner
 import com.acegears.ace360x.emu.EmulatorActivity
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,6 +49,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun LibraryScreen(modifier: Modifier = Modifier, vm: LibraryViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var showExitBanner by remember { mutableStateOf(Diagnostics.consumeUnexpectedExit(context)) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.addFolder(uri)
     }
@@ -68,6 +75,7 @@ fun LibraryScreen(modifier: Modifier = Modifier, vm: LibraryViewModel = viewMode
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (showExitBanner) item { UnexpectedExitBanner(onDismiss = { showExitBanner = false }) }
             item { StatusNote() }
 
             if (state.folders.isEmpty()) {

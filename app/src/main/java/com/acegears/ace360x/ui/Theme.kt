@@ -26,6 +26,8 @@ private val BaseDark = darkColorScheme(
     outline = Color(0xFF4A5058),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005),
+    errorContainer = Color(0xFF5C1A1A),
+    onErrorContainer = Color(0xFFFFDAD6),
 )
 
 @Composable

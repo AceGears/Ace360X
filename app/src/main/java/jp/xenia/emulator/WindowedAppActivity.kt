@@ -11,16 +11,18 @@
 package jp.xenia.emulator
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.res.AssetManager
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
+import androidx.activity.ComponentActivity
 import com.acegears.ace360x.core.NativeBridge
 
-abstract class WindowedAppActivity : Activity() {
+// Ace360X: ComponentActivity (instead of Activity) so Compose overlays can be
+// hosted above the native surface; behaviour is otherwise unchanged.
+abstract class WindowedAppActivity : ComponentActivity() {
 
     companion object {
         /** Bundle extra with Xenia cvar launch arguments; literal also used natively. */

@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.acegears.ace360x.BuildConfig
 import com.acegears.ace360x.core.NativeBridge
+import com.acegears.ace360x.diag.ShareDiagnosticsButton
 
 private val sections = listOf(
     "Status" to "Early development (Phase 3 of 12). Working today: game folder scanning, " +
@@ -50,6 +51,21 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text("Diagnostics", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Creates a text report (emulator log, recent app log lines, why recent " +
+                                "app processes ended, phone model) and opens the share sheet. " +
+                                "Nothing is sent unless you choose a destination.",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(vertical = 6.dp),
+                        )
+                        ShareDiagnosticsButton()
+                    }
+                }
             }
             sections.forEach { (title, body) ->
                 item {

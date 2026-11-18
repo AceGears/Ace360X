@@ -5,13 +5,27 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Process
+import android.view.InputDevice
 import android.view.KeyEvent
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.acegears.ace360x.diag.Diagnostics
 import jp.xenia.emulator.WindowSurfaceView
 import jp.xenia.emulator.WindowedAppActivity
 import java.io.File
@@ -51,23 +65,59 @@ class EmulatorActivity : WindowedAppActivity() {
     override fun getWindowedAppIdentifier(): String = "xenia"
 
     private lateinit var gamepads: GamepadInput
+    private val touchVisible = mutableStateOf(true)
+
+    private fun hasPhysicalGamepad(): Boolean = InputDevice.getDeviceIds().any { id ->
+        val d = InputDevice.getDevice(id) ?: return@any false
+        !d.isVirtual && (d.sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         if (isFinishing) return
+        Diagnostics.markSessionStarted(this)
 
-        gamepads = GamepadInput(this)
+        touchVisible.value = !hasPhysicalGamepad()
+        gamepads = GamepadInput(this) {
+            // A real controller took over player 1: hide the on-screen controls.
+            touchVisible.value = false
+        }
+        val touchState = TouchPadState { gamepads.onTouchState(it) }
+
         val surfaceView = WindowSurfaceView(this)
-        setContentView(surfaceView)
+        val overlay = ComposeView(this).apply {
+            setContent {
+                Box(Modifier.fillMaxSize()) {
+                    if (touchVisible.value) TouchControlsOverlay(touchState)
+                    TextButton(
+                        onClick = {
+                            touchVisible.value = !touchVisible.value
+                            gamepads.setTouchEnabled(touchVisible.value)
+                        },
+                        modifier = Modifier.align(Alignment.TopCenter).alpha(0.6f),
+                    ) {
+                        Text(if (touchVisible.value) "Hide controls" else "Show controls", color = Color.White)
+                    }
+                }
+            }
+        }
+        val root = FrameLayout(this).apply {
+            addView(surfaceView, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            addView(overlay, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        }
+        setContentView(root)
         setWindowSurfaceView(surfaceView)
         hideSystemBars()
     }
 
     override fun onResume() {
         super.onResume()
-        if (::gamepads.isInitialized) gamepads.start()
+        if (::gamepads.isInitialized) {
+            gamepads.start()
+            gamepads.setTouchEnabled(touchVisible.value)
+        }
     }
 
     override fun onPause() {
@@ -102,6 +152,7 @@ class EmulatorActivity : WindowedAppActivity() {
     override fun onDestroy() {
         val finishing = isFinishing
         super.onDestroy()
+        if (finishing) Diagnostics.markSessionEndedCleanly(this)
         // Xenia's process-wide state can't be re-initialised for a second game.
         if (finishing) Process.killProcess(Process.myPid())
     }

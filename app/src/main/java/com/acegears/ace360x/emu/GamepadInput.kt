@@ -17,7 +17,16 @@ import com.acegears.ace360x.core.NativeBridge
  * the native Xenia input driver. Controllers get player slots 1-4 in the order
  * they are first used; a disconnected controller frees its slot.
  */
-class GamepadInput(private val context: Context) : InputManager.InputDeviceListener {
+class GamepadInput(
+    private val context: Context,
+    /** Called (UI thread) the first time a physical controller is used while touch is active. */
+    private val onPhysicalControllerUsed: () -> Unit = {},
+) : InputManager.InputDeviceListener {
+
+    companion object {
+        /** Pseudo device id for the on-screen controls. */
+        const val TOUCH_DEVICE = Int.MIN_VALUE
+    }
 
     private class Slot(var deviceId: Int) {
         var keyButtons = 0
@@ -75,10 +84,34 @@ class GamepadInput(private val context: Context) : InputManager.InputDeviceListe
 
     private fun slotFor(deviceId: Int): Int? {
         slots.indexOfFirst { it?.deviceId == deviceId }.takeIf { it >= 0 }?.let { return it }
+        // A physical controller replaces the on-screen controls as player 1.
+        val touchIndex = slots.indexOfFirst { it?.deviceId == TOUCH_DEVICE }
+        if (deviceId != TOUCH_DEVICE && touchIndex >= 0) {
+            slots[touchIndex] = Slot(deviceId)
+            onPhysicalControllerUsed()
+            return touchIndex
+        }
         val free = slots.indexOfFirst { it == null }
         if (free < 0) return null
         slots[free] = Slot(deviceId)
         return free
+    }
+
+    /** On-screen controls shown/hidden: claim or release a player slot. */
+    fun setTouchEnabled(enabled: Boolean) {
+        val index = slots.indexOfFirst { it?.deviceId == TOUCH_DEVICE }
+        if (enabled && index < 0) {
+            slotFor(TOUCH_DEVICE)
+        } else if (!enabled && index >= 0) {
+            slots[index] = null
+            NativeBridge.setPadState(index, PadSnapshot())
+        }
+    }
+
+    /** Full state from the on-screen controls. */
+    fun onTouchState(snapshot: PadSnapshot) {
+        val index = slots.indexOfFirst { it?.deviceId == TOUCH_DEVICE }
+        if (index >= 0) NativeBridge.setPadState(index, snapshot)
     }
 
     /** Returns true if the event was a controller event and has been consumed. */
@@ -121,7 +154,7 @@ class GamepadInput(private val context: Context) : InputManager.InputDeviceListe
 
     private fun pollRumble() {
         for ((i, slot) in slots.withIndex()) {
-            slot ?: continue
+            if (slot == null || slot.deviceId == TOUCH_DEVICE) continue
             val (left, right) = NativeBridge.padVibration(i)
             val strength = maxOf(left, right)
             if (strength == slot.lastRumble) continue
