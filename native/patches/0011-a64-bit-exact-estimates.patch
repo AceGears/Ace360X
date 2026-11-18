@@ -1,0 +1,124 @@
+diff --git a/src/xenia/cpu/backend/a64/a64_sequences.cc b/src/xenia/cpu/backend/a64/a64_sequences.cc
+index 033ad00..f2ed09f 100644
+--- a/src/xenia/cpu/backend/a64/a64_sequences.cc
++++ b/src/xenia/cpu/backend/a64/a64_sequences.cc
+@@ -11,6 +11,7 @@
+ 
+ #include <cmath>
+ #include <cstdio>
++#include <cstring>
+ #include <initializer_list>
+ #include <type_traits>
+ #include <vector>
+@@ -28,6 +29,7 @@
+ #include "xenia/cpu/backend/a64/a64_tracers.h"
+ #include "xenia/cpu/hir/instr.h"
+ #include "xenia/cpu/ppc/ppc_context.h"
++#include "xenia/cpu/ppc/ppc_estimates.h"
+ 
+ namespace xe {
+ namespace cpu {
+@@ -4225,22 +4227,35 @@ EMITTER_OPCODE_TABLE(OPCODE_MUL_SUB, MUL_SUB_F64, MUL_SUB_V128);
+ // POW2 / LOG2 / DOT_PRODUCT C helper functions (called via CallNativeSafe)
+ // ============================================================================
+ 
+-// POW2 (vexptefp): 2^x for each of 4 float lanes.
++// The estimate instructions as the console computes them, bit for bit
++// (ppc_estimates.cc, shared with the x64 backend). Host exp2/log2/division
++// give different bits, which titles can depend on.
+ // Args: x0=PPCContext* (unused), x1=pointer to vec128_t (in-place).
+-static void EmulatePow2(void* /*ctx*/, void* vdata) {
++template <uint32_t (*Estimate)(uint32_t)>
++static void EmulateEstimateV128(void* /*ctx*/, void* vdata) {
+   auto* data = reinterpret_cast<vec128_t*>(vdata);
+   for (int i = 0; i < 4; i++) {
+-    data->f32[i] = std::exp2(data->f32[i]);
++    data->u32[i] = Estimate(data->u32[i]);
+   }
+ }
+-
+-// LOG2 (vlogefp): log2(x) for each of 4 float lanes.
+-// Args: x0=PPCContext* (unused), x1=pointer to vec128_t (in-place).
+-static void EmulateLog2(void* /*ctx*/, void* vdata) {
+-  auto* data = reinterpret_cast<vec128_t*>(vdata);
+-  for (int i = 0; i < 4; i++) {
+-    data->f32[i] = std::log2(data->f32[i]);
+-  }
++// POW2 (vexptefp)
++static void EmulatePow2(void* ctx, void* vdata) {
++  EmulateEstimateV128<ppc::EstimatePow2>(ctx, vdata);
++}
++// LOG2 (vlogefp)
++static void EmulateLog2(void* ctx, void* vdata) {
++  EmulateEstimateV128<ppc::EstimateLog2>(ctx, vdata);
++}
++// RECIP V128 (vrefp)
++static void EmulateRecipV128(void* ctx, void* vdata) {
++  EmulateEstimateV128<ppc::EstimateReciprocal>(ctx, vdata);
++}
++// RECIP F64 (fres): x1 = pointer to a double (in-place).
++static void EmulateFres(void* /*ctx*/, void* data) {
++  double value;
++  std::memcpy(&value, data, sizeof(value));
++  value = ppc::EstimateReciprocalSingle(value);
++  std::memcpy(data, &value, sizeof(value));
+ }
+ 
+ // DOT_PRODUCT_3 (vmsum3fp): dot product of first 3 elements.
+@@ -4736,8 +4751,8 @@ struct RECIP_F32 : Sequence<RECIP_F32, I<OPCODE_RECIP, F32Op, F32Op>> {
+   }
+ };
+ struct RECIP_F64 : Sequence<RECIP_F64, I<OPCODE_RECIP, F64Op, F64Op>> {
++  // fres: the console's estimate (see EmulateFres), not an exact division.
+   static void Emit(A64Emitter& e, const EmitArgType& i) {
+-    e.ChangeFpcrMode(FPCRMode::Fpu);
+     DReg src = i.src1.is_constant ? e.d0 : DReg(i.src1.reg().getIdx());
+     if (i.src1.is_constant) {
+       union {
+@@ -4748,31 +4763,25 @@ struct RECIP_F64 : Sequence<RECIP_F64, I<OPCODE_RECIP, F64Op, F64Op>> {
+       e.mov(e.x0, c.u);
+       e.fmov(e.d0, e.x0);
+     }
+-    e.fmov(e.d2, 1.0);
+-    e.fdiv(i.dest, e.d2, src);
++    e.str(src, ptr(e.sp, static_cast<uint32_t>(StackLayout::GUEST_SCRATCH)));
++    e.add(e.x1, e.sp, static_cast<uint32_t>(StackLayout::GUEST_SCRATCH));
++    e.CallNativeSafe(reinterpret_cast<void*>(EmulateFres));
++    e.ldr(DReg(i.dest.reg().getIdx()),
++          ptr(e.sp, static_cast<uint32_t>(StackLayout::GUEST_SCRATCH)));
+   }
+ };
+ struct RECIP_V128 : Sequence<RECIP_V128, I<OPCODE_RECIP, V128Op, V128Op>> {
++  // vrefp: the console's estimate (see EmulateRecipV128), which also treats
++  // denormal inputs as zero. GuestToHostThunk restores FPCR after the call.
+   static void Emit(A64Emitter& e, const EmitArgType& i) {
+-    EmitWithVmxFpcr(e, [&] {
+-      if (i.src1.is_constant) {
+-        LoadV128Const(e, 1, i.src1.constant());
+-      } else {
+-        e.mov(VReg(1).b16, VReg(i.src1.reg().getIdx()).b16);
+-      }
+-      // Flush input denormals.
+-      if (!e.IsFeatureEnabled(xe::arm64::kA64FZFlushesInputs)) {
+-        FlushDenormals_V128(e, 1);  // scratch v2, v3
+-      }
+-      auto d = VReg(i.dest.reg().getIdx()).s4;
+-      // Load 1.0f vector.
+-      e.fmov(VReg(0).s4, 1.0f);
+-      e.fdiv(d, VReg(0).s4, VReg(1).s4);
+-      // Flush output denormals.
+-      if (!e.IsFeatureEnabled(xe::arm64::kA64FZFlushesInputs)) {
+-        FlushDenormals_V128(e, i.dest.reg().getIdx(), 0, 1);
+-      }
+-    });
++    int s = SrcVReg(e, i.src1, 0);
++    int d = i.dest.reg().getIdx();
++    e.str(QReg(s),
++          ptr(e.sp, static_cast<uint32_t>(StackLayout::GUEST_SCRATCH)));
++    e.add(e.x1, e.sp, static_cast<uint32_t>(StackLayout::GUEST_SCRATCH));
++    e.CallNativeSafe(reinterpret_cast<void*>(EmulateRecipV128));
++    e.ldr(QReg(d),
++          ptr(e.sp, static_cast<uint32_t>(StackLayout::GUEST_SCRATCH)));
+   }
+ };
+ EMITTER_OPCODE_TABLE(OPCODE_RECIP, RECIP_F32, RECIP_F64, RECIP_V128);
