@@ -125,7 +125,12 @@ jobs:
           echo "== Failing test cases by suite (count, suite) =="
           grep -oE "^\s*\[[^]]+\] (Register|Memory|TEST FAILED|FAILED|Entry|Test setup)" ../../ppc-tests.log \
             | sed -E 's/^\s*\[([^]]+)\].*/\1/' > ../../failed-cases.txt || true
-          sed -E 's/_[0-9]+$//' ../../failed-cases.txt | sort | uniq -c | sort -rn | head -150
+          sort -u ../../failed-cases.txt > ../../failed-unique.txt
+          echo "Unique failing cases: $(wc -l < ../../failed-unique.txt)"
+          echo "== Failing cases by instruction (count, instruction) =="
+          sed -E 's/_[0-9].*$//' ../../failed-unique.txt | sort | uniq -c | sort -rn > ../../failed-by-instr.txt
+          echo "Instructions with failures: $(wc -l < ../../failed-by-instr.txt)"
+          cat ../../failed-by-instr.txt
           echo "== First failure details =="
           grep -m 40 -A3 -E "assert failed|TEST FAILED|FAILED" ../../ppc-tests.log | cut -c1-200
           echo "exit=$rc" >> "$GITHUB_OUTPUT"
