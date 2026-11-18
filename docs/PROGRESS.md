@@ -94,3 +94,31 @@
 ### Known gaps
 - Touch layout isn't customisable yet (position/size/opacity); triggers are digital only.
 - Still no on-device result for anything — the next step needs the user's phone.
+
+## 2026-11-17 (later) — Settings, thermal notice, library features, fixes
+
+### Implemented (CI-built, not yet run on a device)
+- **Settings tab** — every option maps to a verified Xenia cvar or real app behaviour:
+  graphics presets (Original / Enhanced / High quality / Custom), internal resolution 1–3×,
+  FXAA, CAS/FSR, keep aspect ratio, mute, touch-control visibility/opacity/size, and an
+  Advanced guest-VSync switch with a warning. Settings travel to the game process in the
+  launch Intent.
+- **Thermal notice** on the game screen from Android's thermal status (informational only).
+- **Library**: cached results on start, search, sort (name / recently played / most played /
+  size), favourites with filter, last-played and playtime per game.
+- **Fixes from code review**: Back now asks before quitting (some controllers send Back from
+  B, which used to end the game instantly); launching a second game while one is open now
+  explains why the old one came back.
+
+### Deliberately not implemented (and why)
+- **Eco / Performance / Automatic profiles and frame caps**: in Xenia `vsync` and
+  `framerate_limit` pace the guest's vertical blank, so capping them changes game speed. With
+  no on-device measurements yet, any profile would be a guess (CLAUDE.md §7, §20).
+- **Battery Saver / Balanced graphics presets**: they would be identical to Original today.
+
+### Still missing
+- Launching extracted game folders (loose XEX) and multi-file GoD/SVOD — needs a SAF-tree VFS
+  device in native code.
+- Touch layout editing, analog touch triggers, controller remapping, per-game settings,
+  in-game overlay of our own, cover art, the 12-theme engine, ADPF performance hints.
+- Any on-device result.

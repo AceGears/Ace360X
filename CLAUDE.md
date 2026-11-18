@@ -22,7 +22,7 @@ disagree, fix one of them in the same change. Feasibility research: `docs/FEASIB
 ```
 app/                Kotlin + Jetpack Compose UI (no emulation logic), package com.acegears.ace360x
   core/NativeBridge.kt  the ONLY Kotlin side of JNI
-  ui/  library/  device/  diag/ (Diagnostics report + share)
+  ui/  library/  device/  diag/ (Diagnostics report + share)  settings/ (EmulatorSettings → cvars)
   emu/ (EmulatorActivity, GamepadInput/GamepadMapper, TouchControls)
                     (later: settings/ theme/ overlay/)
 app/src/main/java/jp/xenia/emulator/  Kotlin port of upstream WindowedAppActivity/
@@ -198,4 +198,8 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   Android controller input (0006), AAudio sound (0007).
 - Implemented (unverified on device): diagnostics sharing (About + unexpected-exit banner),
   on-screen touch controls.
-- Next: first on-device game launch by the user and their diagnostics report; fix what it shows.
+- Implemented (unverified on device): Settings tab (graphics presets, resolution scale, FXAA,
+  CAS/FSR, aspect, mute, touch options, guest VSync), thermal notice, library cache/search/
+  sort/favourites/playtime, quit confirmation.
+- Next: first on-device game launch by the user and their diagnostics report; fix what it shows;
+  SAF-tree VFS device for extracted games.
