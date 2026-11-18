@@ -1,0 +1,22 @@
+diff --git a/src/xenia/vfs/devices/xcontent_devices/svod_container_device.cc b/src/xenia/vfs/devices/xcontent_devices/svod_container_device.cc
+index 5ecf483..6a9b238 100644
+--- a/src/xenia/vfs/devices/xcontent_devices/svod_container_device.cc
++++ b/src/xenia/vfs/devices/xcontent_devices/svod_container_device.cc
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include "xenia/vfs/devices/xcontent_devices/svod_container_device.h"
++#include "xenia/base/filesystem.h"  // Ace360X
+ #include "xenia/base/logging.h"
+ #include "xenia/vfs/devices/xcontent_devices/svod_container_entry.h"
+ 
+@@ -35,7 +36,8 @@ SvodContainerDevice::Result SvodContainerDevice::LoadHostFiles(
+     const size_t data_file_count) {
+   std::filesystem::path data_fragment_path = host_path_;
+   data_fragment_path += ".data";
+-  if (!std::filesystem::exists(data_fragment_path)) {
++  // Ace360X: also works for external-tree (Android SAF folder) paths.
++  if (!xe::filesystem::PathExistsAnyScheme(data_fragment_path)) {
+     XELOGE("SVOD container is multi-file, but path {} does not exist.",
+            data_fragment_path);
+     return Result::kFileMismatch;

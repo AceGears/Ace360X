@@ -14,6 +14,7 @@
 #if ACE_WITH_XENIA
 #include "android_input_driver.h"
 #include "core_selftest.h"
+#include "saf_tree_provider.h"
 #endif
 
 #define LOG_TAG "Ace360XNative"
@@ -138,5 +139,23 @@ Java_com_acegears_ace360x_core_NativeBridge_nativeGetPadVibration(JNIEnv* /*env*
 #else
   (void)user;
   return 0;
+#endif
+}
+
+// Registers the acetree:// provider (Kotlin SafTree) with Xenia's filesystem.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_acegears_ace360x_core_NativeBridge_nativeInstallSafTree(JNIEnv* env, jobject /*thiz*/,
+                                                                 jclass saf_tree_class) {
+#if ACE_WITH_XENIA
+  try {
+    return ace360x::host::InstallSafTreeProvider(env, saf_tree_class) ? JNI_TRUE : JNI_FALSE;
+  } catch (...) {
+    LOGE("InstallSafTreeProvider threw");
+    return JNI_FALSE;
+  }
+#else
+  (void)env;
+  (void)saf_tree_class;
+  return JNI_FALSE;
 #endif
 }

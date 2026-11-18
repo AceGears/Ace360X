@@ -61,7 +61,8 @@ if(ANDROID)
       ${_xe}/src/xenia/app/profile_dialogs.cc
       # Ours, but built with upstream's flags since it implements a Xenia interface.
       ${CMAKE_CURRENT_SOURCE_DIR}/host/android_input_driver.cc
-      ${CMAKE_CURRENT_SOURCE_DIR}/host/aaudio_audio_system.cc)
+      ${CMAKE_CURRENT_SOURCE_DIR}/host/aaudio_audio_system.cc
+      ${CMAKE_CURRENT_SOURCE_DIR}/host/saf_tree_provider.cc)
     target_compile_definitions(ace_xenia_app PRIVATE ${_xe_defs}
       XBYAK_NO_OP_NAMES XBYAK_ENABLE_OMITTED_OPERAND)
     target_compile_options(ace_xenia_app PRIVATE ${_xe_opts})

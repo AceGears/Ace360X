@@ -1,0 +1,181 @@
+diff --git a/src/xenia/base/filesystem.cc b/src/xenia/base/filesystem.cc
+index 986314d..48d21d1 100644
+--- a/src/xenia/base/filesystem.cc
++++ b/src/xenia/base/filesystem.cc
+@@ -21,7 +21,30 @@
+ namespace xe {
+ namespace filesystem {
+ 
++namespace {
++const ExternalTreeProvider* external_tree_provider_ = nullptr;
++}  // namespace
++
++void SetExternalTreeProvider(const ExternalTreeProvider* provider) {
++  external_tree_provider_ = provider;
++}
++
++const ExternalTreeProvider* ExternalTreeProviderFor(
++    const std::filesystem::path& path) {
++  const ExternalTreeProvider* provider = external_tree_provider_;
++  if (!provider || !provider->scheme) {
++    return nullptr;
++  }
++  const std::string prefix = std::string(provider->scheme) + "://";
++  const std::string path_string = path.string();
++  return path_string.compare(0, prefix.size(), prefix) == 0 ? provider
++                                                             : nullptr;
++}
++
+ bool IsNonHostPath(const std::filesystem::path& path) {
++  if (ExternalTreeProviderFor(path)) {
++    return true;
++  }
+ #if XE_PLATFORM_ANDROID
+   return IsAndroidContentUri(path.string());
+ #else
+@@ -31,6 +54,9 @@ bool IsNonHostPath(const std::filesystem::path& path) {
+ }
+ 
+ bool PathExistsAnyScheme(const std::filesystem::path& path) {
++  if (auto tree = ExternalTreeProviderFor(path)) {
++    return tree->get_info(path).has_value();
++  }
+ #if XE_PLATFORM_ANDROID
+   if (IsAndroidContentUri(path.string())) {
+     int fd = OpenAndroidContentFileDescriptor(path.string(), "r");
+@@ -46,6 +72,13 @@ bool PathExistsAnyScheme(const std::filesystem::path& path) {
+ }
+ 
+ std::optional<uint64_t> FileSizeAnyScheme(const std::filesystem::path& path) {
++  if (auto tree = ExternalTreeProviderFor(path)) {
++    auto info = tree->get_info(path);
++    if (!info || info->type != FileInfo::Type::kFile) {
++      return std::nullopt;
++    }
++    return uint64_t(info->total_size);
++  }
+ #if XE_PLATFORM_ANDROID
+   if (IsAndroidContentUri(path.string())) {
+     int fd = OpenAndroidContentFileDescriptor(path.string(), "r");
+diff --git a/src/xenia/base/filesystem.h b/src/xenia/base/filesystem.h
+index fb89d0a..34219cf 100644
+--- a/src/xenia/base/filesystem.h
++++ b/src/xenia/base/filesystem.h
+@@ -155,6 +155,23 @@ bool IsNonHostPath(const std::filesystem::path& path);
+ bool PathExistsAnyScheme(const std::filesystem::path& path);
+ std::optional<uint64_t> FileSizeAnyScheme(const std::filesystem::path& path);
+ 
++// Ace360X: optional provider for virtual directory trees addressed as
++// "<scheme>://<root>/<relative path>" (on Android: Storage Access Framework
++// folders), so HostPathDevice can mount folders that have no POSIX path.
++// GetInfo, ListFiles, FileHandle::OpenExisting, OpenFile and
++// MappedMemory::Open route matching paths to the provider.
++struct ExternalTreeProvider {
++  const char* scheme;  // e.g. "acetree"
++  std::optional<FileInfo> (*get_info)(const std::filesystem::path& path);
++  std::vector<FileInfo> (*list_files)(const std::filesystem::path& path);
++  // Returns a file descriptor owned by the caller, or -1 on failure.
++  int (*open_fd)(const std::filesystem::path& path, bool write);
++};
++void SetExternalTreeProvider(const ExternalTreeProvider* provider);
++// The provider handling this path, or nullptr for ordinary paths.
++const ExternalTreeProvider* ExternalTreeProviderFor(
++    const std::filesystem::path& path);
++
+ #if XE_PLATFORM_ANDROID
+ void AndroidInitialize();
+ void AndroidShutdown();
+diff --git a/src/xenia/base/filesystem_posix.cc b/src/xenia/base/filesystem_posix.cc
+index f6e4a2e..9a6e5d9 100644
+--- a/src/xenia/base/filesystem_posix.cc
++++ b/src/xenia/base/filesystem_posix.cc
+@@ -98,6 +98,19 @@ std::filesystem::path GetUserFolder() {
+ }
+ 
+ FILE* OpenFile(const std::filesystem::path& path, const std::string_view mode) {
++  if (auto tree = ExternalTreeProviderFor(path)) {  // Ace360X
++    const std::string mode_str(mode);
++    int fd = tree->open_fd(
++        path, mode_str.find_first_of("wa+") != std::string::npos);
++    if (fd < 0) {
++      return nullptr;
++    }
++    FILE* file = fdopen(fd, mode_str.c_str());
++    if (!file) {
++      close(fd);
++    }
++    return file;
++  }
+ #if XE_PLATFORM_ANDROID
+   // Ace360X: Storage Access Framework documents.
+   if (IsAndroidContentUri(path.string())) {
+@@ -207,6 +220,17 @@ class PosixFileHandle : public FileHandle {
+ 
+ std::unique_ptr<FileHandle> FileHandle::OpenExisting(
+     const std::filesystem::path& path, uint32_t desired_access) {
++  if (auto tree = ExternalTreeProviderFor(path)) {  // Ace360X
++    const bool write =
++        (desired_access & (FileAccess::kGenericWrite | FileAccess::kGenericAll |
++                           FileAccess::kFileWriteData |
++                           FileAccess::kFileAppendData)) != 0;
++    int fd = tree->open_fd(path, write);
++    if (fd < 0) {
++      return nullptr;
++    }
++    return std::make_unique<PosixFileHandle>(path, fd, false);
++  }
+   int open_access = 0;
+   if (desired_access & FileAccess::kGenericRead) {
+     open_access |= O_RDONLY;
+@@ -259,6 +283,9 @@ std::unique_ptr<FileHandle> FileHandle::OpenExisting(
+ }
+ 
+ std::optional<FileInfo> GetInfo(const std::filesystem::path& path) {
++  if (auto tree = ExternalTreeProviderFor(path)) {  // Ace360X
++    return tree->get_info(path);
++  }
+   FileInfo info{};
+   struct stat st;
+   if (stat(path.c_str(), &st) == 0) {
+@@ -281,6 +308,9 @@ std::optional<FileInfo> GetInfo(const std::filesystem::path& path) {
+ }
+ 
+ std::vector<FileInfo> ListFiles(const std::filesystem::path& path) {
++  if (auto tree = ExternalTreeProviderFor(path)) {  // Ace360X
++    return tree->list_files(path);
++  }
+   std::vector<FileInfo> result;
+ 
+   DIR* dir = opendir(path.c_str());
+diff --git a/src/xenia/base/mapped_memory_posix.cc b/src/xenia/base/mapped_memory_posix.cc
+index 70a0e29..c640ff6 100644
+--- a/src/xenia/base/mapped_memory_posix.cc
++++ b/src/xenia/base/mapped_memory_posix.cc
+@@ -97,6 +97,13 @@ class PosixMappedMemory : public MappedMemory {
+ std::unique_ptr<MappedMemory> MappedMemory::Open(
+     const std::filesystem::path& path, Mode mode, size_t offset,
+     size_t length) {
++  if (auto tree = xe::filesystem::ExternalTreeProviderFor(path)) {  // Ace360X
++    int fd = tree->open_fd(path, mode == Mode::kReadWrite);
++    if (fd < 0) {
++      return nullptr;
++    }
++    return PosixMappedMemory::WrapFileDescriptor(fd, mode, offset, length);
++  }
+ #if XE_PLATFORM_ANDROID
+   // Ace360X: Storage Access Framework documents.
+   if (xe::filesystem::IsAndroidContentUri(path.string())) {
+diff --git a/src/xenia/vfs/devices/host_path_device.cc b/src/xenia/vfs/devices/host_path_device.cc
+index 65479ad..bb0ee01 100644
+--- a/src/xenia/vfs/devices/host_path_device.cc
++++ b/src/xenia/vfs/devices/host_path_device.cc
+@@ -30,7 +30,8 @@ HostPathDevice::HostPathDevice(const std::string_view mount_path,
+ HostPathDevice::~HostPathDevice() = default;
+ 
+ bool HostPathDevice::Initialize() {
+-  if (!std::filesystem::exists(host_path_)) {
++  // Ace360X: also accepts external-tree paths (e.g. Android SAF folders).
++  if (!xe::filesystem::PathExistsAnyScheme(host_path_)) {
+     if (!read_only_) {
+       // Create the path.
+       std::filesystem::create_directories(host_path_);

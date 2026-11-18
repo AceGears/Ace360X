@@ -12,11 +12,11 @@ enum class GameFormat(val code: Int, val label: String) {
     val isRecognised: Boolean get() = this != UNKNOWN
 
     /**
-     * Formats the launch path supports from a single Storage Access Framework
-     * document (native/patches/0005). A loose XEX needs its whole folder, which
-     * isn't supported yet.
+     * Formats that can be launched: ISO directly from its SAF document (patch 0005);
+     * extracted XEX games and STFS/GoD packages through their SAF folder (patches
+     * 0008/0009, emu/SafTree.kt).
      */
-    val isLaunchable: Boolean get() = this == DISC_IMAGE || this == STFS_CON || this == STFS_LIVE || this == STFS_PIRS
+    val isLaunchable: Boolean get() = this != UNKNOWN
 
     companion object {
         fun fromCode(code: Int): GameFormat = entries.firstOrNull { it.code == code } ?: UNKNOWN

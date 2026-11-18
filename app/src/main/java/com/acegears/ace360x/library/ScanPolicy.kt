@@ -25,6 +25,20 @@ object ScanPolicy {
         return displayName.substring(dot + 1).lowercase() in candidateExtensions
     }
 
+    /**
+     * Name to show for a game file at [relativePath]. An extracted game is always
+     * "default.xex", and a Games on Demand header is a hash, so use the folder name
+     * (skipping GoD's content-type folder like "00007000").
+     */
+    fun displayNameFor(relativePath: String): String {
+        val parts = relativePath.split('/').filter { it.isNotEmpty() }
+        val file = parts.lastOrNull() ?: return relativePath
+        val folders = parts.dropLast(1).filterNot { it.matches(Regex("[0-9A-Fa-f]{8}")) }
+        val isXex = file.equals("default.xex", ignoreCase = true)
+        val isHashName = file.matches(Regex("[0-9A-Fa-f]{16,}"))
+        return if ((isXex || isHashName) && folders.isNotEmpty()) folders.last() else file
+    }
+
     fun formatSize(bytes: Long): String {
         if (bytes < 1024) return "$bytes B"
         val units = listOf("KB", "MB", "GB", "TB")

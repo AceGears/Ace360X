@@ -24,7 +24,17 @@ data class GameEntry(
     val sizeBytes: Long,
     val format: GameFormat,
     val folderUri: Uri,
-)
+    /** Path of the file inside [folderUri] ("Halo 3/default.xex"); "" if unknown (old cache). */
+    val relativePath: String = "",
+) {
+    /** What Xenia is asked to open. Folder-based formats need the acetree:// form. */
+    fun launchTarget(): String? = when {
+        !format.isLaunchable -> null
+        format == GameFormat.DISC_IMAGE -> uri.toString()
+        relativePath.isEmpty() -> null
+        else -> com.acegears.ace360x.emu.SafTree.pathFor(folderUri, relativePath)
+    }
+}
 
 data class ScanReport(
     val games: List<GameEntry>,
@@ -67,6 +77,7 @@ class LibraryRepository(private val context: Context) {
                 sizeBytes = o.getLong("size"),
                 format = GameFormat.fromCode(o.getInt("format")),
                 folderUri = Uri.parse(o.getString("folder")),
+                relativePath = o.optString("rel", ""),
             )
         }.filter { it.format.isRecognised }
     }.getOrDefault(emptyList())
@@ -79,7 +90,8 @@ class LibraryRepository(private val context: Context) {
                 arr.put(
                     org.json.JSONObject()
                         .put("uri", g.uri.toString()).put("name", g.displayName).put("size", g.sizeBytes)
-                        .put("format", g.format.code).put("folder", g.folderUri.toString()),
+                        .put("format", g.format.code).put("folder", g.folderUri.toString())
+                        .put("rel", g.relativePath),
                 )
             }
             val tmp = java.io.File(cacheFile.parentFile, cacheFile.name + ".tmp")
@@ -115,7 +127,7 @@ class LibraryRepository(private val context: Context) {
             }
             try {
                 val rootId = DocumentsContract.getTreeDocumentId(tree)
-                walk(tree, rootId, depth = 0, state, games)
+                walk(tree, rootId, depth = 0, relPrefix = "", state, games)
             } catch (e: Exception) {
                 Log.w(TAG, "Folder unavailable: $tree", e)
                 missing += tree
@@ -136,7 +148,7 @@ class LibraryRepository(private val context: Context) {
         var hitLimit = false
     }
 
-    private fun walk(tree: Uri, docId: String, depth: Int, state: ScanState, out: MutableList<GameEntry>) {
+    private fun walk(tree: Uri, docId: String, depth: Int, relPrefix: String, state: ScanState, out: MutableList<GameEntry>) {
         if (depth > ScanPolicy.MAX_DEPTH) return
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, docId)
         val projection = arrayOf(
@@ -145,7 +157,7 @@ class LibraryRepository(private val context: Context) {
             DocumentsContract.Document.COLUMN_MIME_TYPE,
             DocumentsContract.Document.COLUMN_SIZE,
         )
-        val subdirs = mutableListOf<String>()
+        val subdirs = mutableListOf<Pair<String, String>>()
         resolver.query(children, projection, null, null, null)?.use { c ->
             while (c.moveToNext()) {
                 if (state.visited >= ScanPolicy.MAX_FILES_VISITED) {
@@ -157,19 +169,23 @@ class LibraryRepository(private val context: Context) {
                 val name = c.getString(1) ?: continue
                 val mime = c.getString(2)
                 val size = if (c.isNull(3)) -1L else c.getLong(3)
+                val rel = if (relPrefix.isEmpty()) name else "$relPrefix/$name"
                 if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
-                    subdirs += id
+                    // A GoD ".data" folder holds only data fragments; no need to sniff them.
+                    if (!name.endsWith(".data", ignoreCase = true)) subdirs += id to rel
                 } else if (ScanPolicy.isCandidate(name, size)) {
                     val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
                     val format = identify(uri)
                     when {
                         format == null -> state.unreadable++
-                        format.isRecognised -> out += GameEntry(uri, name, size, format, tree)
+                        format.isRecognised -> out += GameEntry(
+                            uri, ScanPolicy.displayNameFor(rel), size, format, tree, rel,
+                        )
                     }
                 }
             }
         }
-        for (dir in subdirs) walk(tree, dir, depth + 1, state, out)
+        for ((dir, rel) in subdirs) walk(tree, dir, depth + 1, rel, state, out)
     }
 
     private fun identify(uri: Uri): GameFormat? = try {

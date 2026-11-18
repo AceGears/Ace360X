@@ -28,7 +28,7 @@ class PureLogicTest {
     @Test fun launchableFormats() {
         assertTrue(GameFormat.DISC_IMAGE.isLaunchable)
         assertTrue(GameFormat.STFS_LIVE.isLaunchable)
-        assertFalse(GameFormat.XEX2.isLaunchable)
+        assertTrue(GameFormat.XEX2.isLaunchable)   // via SAF folder (patch 0008)
         assertFalse(GameFormat.UNKNOWN.isLaunchable)
     }
 
@@ -108,5 +108,14 @@ class PureLogicTest {
         pad.setButton(GamepadMapper.A, false)
         assertEquals(0, last.buttons)
         assertTrue(last.connected)
+    }
+
+    @Test fun displayNames() {
+        assertEquals("Halo 3", ScanPolicy.displayNameFor("Halo 3/default.xex"))
+        assertEquals("Games/Halo 3".substringAfterLast('/'), ScanPolicy.displayNameFor("Games/Halo 3/DEFAULT.XEX"))
+        // Games on Demand: <game>/<TitleID>/00007000/<hash>
+        assertEquals("Forza", ScanPolicy.displayNameFor("Forza/4D5309C9/00007000/0123456789ABCDEF0123"))
+        assertEquals("Game.iso", ScanPolicy.displayNameFor("Isos/Game.iso"))
+        assertEquals("default.xex", ScanPolicy.displayNameFor("default.xex"))  // no folder to name it after
     }
 }

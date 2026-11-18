@@ -272,12 +272,16 @@ private fun lastPlayedLabel(millis: Long): String? {
 private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggleFavorite: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val launchable = game.format.isLaunchable
+    val target = game.launchTarget()
+    val launchable = target != null
     Card(
         onClick = {
             scope.launch {
                 val settings = SettingsRepository(context.applicationContext).current()
-                context.startActivity(EmulatorActivity.launchIntent(context, game.uri, game.displayName, settings))
+                val t = target ?: return@launch
+                context.startActivity(
+                    EmulatorActivity.launchIntent(context, t, game.displayName, settings, statsKey = game.uri.toString()),
+                )
             }
         },
         enabled = launchable,
@@ -299,7 +303,7 @@ private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggle
                 }
                 if (!launchable) {
                     Text(
-                        "Can't be started yet: a loose XEX needs its whole game folder.",
+                        "Rescan this folder to make this game startable.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

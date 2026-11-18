@@ -72,6 +72,10 @@ object NativeBridge {
         user: Int, connected: Boolean, buttons: Int, lt: Int, rt: Int, lx: Int, ly: Int, rx: Int, ry: Int,
     )
     private external fun nativeGetPadVibration(user: Int): Int
+    /** Registers the SAF folder provider for extracted games (see emu/SafTree.kt). */
+    fun installSafTree(cls: Class<*>): Boolean = hasCore && nativeInstallSafTree(cls)
+
+    private external fun nativeInstallSafTree(cls: Class<*>): Boolean
     private external fun nativeHasCore(): Boolean
     private external fun nativeInitCore(apiLevel: Int, context: android.content.Context)
     private external fun nativeRunCoreSelfTest(): String

@@ -54,16 +54,24 @@ class EmulatorActivity : WindowedAppActivity() {
     companion object {
         private const val EXTRA_GAME_URI = "com.acegears.ace360x.GAME_URI"
         private const val EXTRA_GAME_NAME = "com.acegears.ace360x.GAME_NAME"
+        private const val EXTRA_STATS_KEY = "com.acegears.ace360x.STATS_KEY"
 
         private const val EXTRA_TOUCH_OPACITY = "com.acegears.ace360x.TOUCH_OPACITY"
         private const val EXTRA_TOUCH_SCALE = "com.acegears.ace360x.TOUCH_SCALE"
         private const val EXTRA_TOUCH_DEFAULT = "com.acegears.ace360x.TOUCH_DEFAULT"
 
-        fun launchIntent(context: Context, gameUri: Uri, displayName: String, settings: EmulatorSettings): Intent {
+        /** [target] is a content:// document URI or an acetree:// path (see SafTree). */
+        fun launchIntent(
+            context: Context,
+            target: String,
+            displayName: String,
+            settings: EmulatorSettings,
+            statsKey: String = target,
+        ): Intent {
             val storage = File(context.filesDir, "xenia").apply { mkdirs() }
             val cvars = Bundle().apply {
                 // Path cvars are read with Bundle.getString by Xenia (cvar_android.cc).
-                putString("target", gameUri.toString())
+                putString("target", target)
                 putString("storage_root", storage.absolutePath)
                 putString("log_file", File(storage, "xenia.log").absolutePath)
                 putBoolean("discord", false)
@@ -79,7 +87,8 @@ class EmulatorActivity : WindowedAppActivity() {
             }
             return Intent(context, EmulatorActivity::class.java)
                 .putExtra(EXTRA_CVARS, cvars)
-                .putExtra(EXTRA_GAME_URI, gameUri.toString())
+                .putExtra(EXTRA_GAME_URI, target)
+                .putExtra(EXTRA_STATS_KEY, statsKey)
                 .putExtra(EXTRA_GAME_NAME, displayName)
                 .putExtra(EXTRA_TOUCH_OPACITY, settings.touchOpacity)
                 .putExtra(EXTRA_TOUCH_SCALE, settings.touchScale)
@@ -94,6 +103,7 @@ class EmulatorActivity : WindowedAppActivity() {
     private val touchVisible = mutableStateOf(true)
     private val confirmExit = mutableStateOf(false)
     private var gameUri: String? = null
+    private var statsKey: String? = null
     private var resumedAtMillis = 0L
     private val playtimeTicker = Handler(Looper.getMainLooper())
     private val playtimeTick = object : Runnable {
@@ -105,7 +115,7 @@ class EmulatorActivity : WindowedAppActivity() {
 
     /** Adds time since the last flush to this game's playtime (survives crashes, ±1 min). */
     private fun flushPlaytime() {
-        val uri = gameUri ?: return
+        val uri = statsKey ?: return
         val now = System.currentTimeMillis()
         if (resumedAtMillis > 0) PlayStats.addPlaytime(this, uri, (now - resumedAtMillis) / 1000)
         resumedAtMillis = now
@@ -121,11 +131,14 @@ class EmulatorActivity : WindowedAppActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Must be registered before Xenia starts and mounts the game.
+        SafTree.install(this)
         super.onCreate(savedInstanceState)
         if (isFinishing) return
         Diagnostics.markSessionStarted(this)
         gameUri = intent.getStringExtra(EXTRA_GAME_URI)
-        gameUri?.let { PlayStats.markPlayed(this, it) }
+        statsKey = intent.getStringExtra(EXTRA_STATS_KEY) ?: gameUri
+        statsKey?.let { PlayStats.markPlayed(this, it) }
 
         val touchOpacity = intent.getFloatExtra(EXTRA_TOUCH_OPACITY, 0.75f)
         val touchScale = intent.getFloatExtra(EXTRA_TOUCH_SCALE, 1f)
