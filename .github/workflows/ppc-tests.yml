@@ -16,6 +16,7 @@ on:
       - 'scripts/ci-build-ppc-binutils.sh'
       - 'scripts/ci-gen-ppc-tests.sh'
       - 'scripts/fetch-xenia-deps.sh'
+      - 'scripts/ci-build-spirv-tools.sh'
       - '.github/workflows/ppc-tests.yml'
   workflow_dispatch:
 
@@ -49,8 +50,16 @@ jobs:
           sudo apt-get -y -qq install libc++-dev libc++abi-dev libgtk-3-dev libudev-dev libasound2-dev \
             libpulse-dev libpipewire-0.3-dev libvulkan-dev libx11-xcb-dev clang-20 lld-20 ninja-build \
             ccache texinfo flex bison
-          scripts/ci-install-vulkan-sdk.sh || true   # shader tools; x86-64 SDK may not run on ARM64
-          sudo apt-get -y -qq install glslang-tools spirv-tools
+          sudo apt-get -y -qq install glslang-tools
+
+      - name: Cache SPIR-V tools
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spirv-sdk
+          key: spirv-tools-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'scripts/ci-build-spirv-tools.sh') }}
+
+      - name: Build SPIR-V tools (LunarG SDK has no Linux ARM64 build)
+        run: scripts/ci-build-spirv-tools.sh "$RUNNER_TEMP/spirv-sdk"
 
       - name: Cache vmx128 binutils
         uses: actions/cache@v4
