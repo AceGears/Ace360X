@@ -158,3 +158,27 @@
 
 ### Still needs the user
 - First on-device run: Device tab self-test, launch a game, share diagnostics.
+
+## 2026-11-18 (evening) — Theme engine
+
+### Implemented (CI-built and unit-tested, not yet seen on a device)
+- 12 themes in `app/.../theme/`: each has its own palette, heading/body fonts (Android system
+  fonts only, no new dependency), corner style (rounded/cut, sizes), card style (tonal,
+  outlined, glass, glow), motion tokens, icon style, a Canvas background ("ambiance"), and
+  component overrides (nav indicator, switch/slider colour roles, progress thickness, focus
+  ring). Minimal Luxe deliberately has no background effect.
+- Settings → Appearance: theme picker with previews in each theme's own colours, shapes and
+  font; accent override (only accents that keep WCAG AA in that theme); background effect;
+  reduce motion; corner style; reset. Stored as a diff over the base theme (DataStore
+  `theme`, schema v1). The game's quit dialog follows the theme via the launch Intent.
+- Motion: tab transitions and ambiance use the theme's tokens; with Android animations off
+  (`ANIMATOR_DURATION_SCALE` = 0) or "Reduce motion", durations are 0 and the background is a
+  static frame. No ambiance exists in the game process.
+- `ThemeTest` (JVM, CI run 44395421531): all 12 themes and every offered accent pass WCAG AA
+  (4.5:1) for body, secondary, primary and error text on every surface level, on the
+  ambiance tint and on glass cards; focus rings ≥ 3:1; themes differ beyond colour.
+
+### Not verified
+- How the themes look and perform on a phone: no screenshots, no frame timing for animated
+  backgrounds. Phase 9 needs visual review screenshots from a device.
+- ktlint/detekt (CLAUDE.md §4) are still not set up in CI.
