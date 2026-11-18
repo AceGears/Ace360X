@@ -79,3 +79,18 @@
    core self-test.
 2. Fix whatever the first device run shows; add log export so failures can be diagnosed.
 3. On-screen touch controls; XEX-folder launching via SAF trees.
+
+## 2026-11-17 — Diagnostics and touch controls
+
+### Implemented (CI-built, not yet run on a device)
+- **Share diagnostics** (About screen, and a Library banner after an unexpected game exit):
+  text report with build/device info, Android `ApplicationExitInfo` exit reasons (native
+  crash, low memory…), Xenia log tail and this app's logcat. Shared only via the share sheet.
+- **On-screen touch controls** on the game screen: two analog sticks, d-pad, A/B/X/Y,
+  LB/RB, LT/RT (digital), LS/RS clicks, Back/Start, haptics; show/hide toggle; touches
+  outside the controls still reach Xenia's ImGui menus; a physical controller replaces touch
+  as player 1 automatically.
+
+### Known gaps
+- Touch layout isn't customisable yet (position/size/opacity); triggers are digital only.
+- Still no on-device result for anything — the next step needs the user's phone.
