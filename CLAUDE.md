@@ -213,4 +213,6 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   elevation, motion tokens, icon style, ambiance renderer, component overrides), accent/
   ambiance/motion/corner customisation stored as a versioned diff, WCAG AA JVM test
   (`ThemeTest`). Visual review screenshots (Phase 9) need a device.
+- Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
+  sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).
 - Next: first on-device game launch by the user and their diagnostics report; fix what it shows.

@@ -113,3 +113,47 @@ class FeatureLogicTest {
         }
     }
 }
+
+class GameOverridesTest {
+    private val global = EmulatorSettings(resolutionScale = 1, antiAliasing = AntiAliasing.FXAA, mute = false, touchScale = 1.2f)
+
+    @Test fun emptyOverridesChangeNothing() {
+        val o = com.acegears.ace360x.settings.GameOverrides()
+        assert(o.isEmpty)
+        assertEquals(global, o.applyTo(global))
+        assertEquals(o, com.acegears.ace360x.settings.GameOverrides.parse(o.serialize()))
+    }
+
+    @Test fun overridesReplaceOnlyTheirFields() {
+        val o = com.acegears.ace360x.settings.GameOverrides(resolutionScale = 2, mute = true, guestVsync = false)
+        val s = o.applyTo(global)
+        assertEquals(2, s.resolutionScale)
+        assertEquals(true, s.mute)
+        assertEquals(false, s.guestVsync)
+        assertEquals(AntiAliasing.FXAA, s.antiAliasing) // not overridden
+        assertEquals(1.2f, s.touchScale) // controller/touch options stay global
+        assertEquals(2, s.toCvars()["draw_resolution_scale_x"])
+    }
+
+    @Test fun serializationRoundTripsAndWritesOnlyTheDiff() {
+        val o = com.acegears.ace360x.settings.GameOverrides(
+            resolutionScale = 3, antiAliasing = AntiAliasing.OFF, sharpening = Sharpening.FSR,
+            keepAspectRatio = false, mute = true, guestVsync = false,
+        )
+        assertEquals(o, com.acegears.ace360x.settings.GameOverrides.parse(o.serialize()))
+        val one = com.acegears.ace360x.settings.GameOverrides(mute = true)
+        assertEquals("v1\nmute=true\n", one.serialize())
+    }
+
+    @Test fun malformedFilesAreIgnored() {
+        val p = com.acegears.ace360x.settings.GameOverrides.Companion::parse
+        val empty = com.acegears.ace360x.settings.GameOverrides()
+        assertEquals(empty, p(null))
+        assertEquals(empty, p("garbage"))
+        assertEquals(empty, p("v2\nmute=true\n"))
+        assertEquals(empty, p("v1\n" + "x".repeat(2000)))
+        // Out-of-range and unknown values fall back to the global value, valid keys still apply.
+        val mixed = p("v1\nscale=99\naa=NOPE\nmute=true\nunknown=1\n=x\n")
+        assertEquals(com.acegears.ace360x.settings.GameOverrides(mute = true), mixed)
+    }
+}

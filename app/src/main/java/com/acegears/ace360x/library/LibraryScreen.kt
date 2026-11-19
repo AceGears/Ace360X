@@ -1,5 +1,12 @@
 package com.acegears.ace360x.library
 
+import com.acegears.ace360x.settings.EmulatorSettings
+import com.acegears.ace360x.settings.GameSettingsDialog
+import com.acegears.ace360x.settings.GameOverridesStore
+import com.acegears.ace360x.settings.GameOverrides
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.flow.first
 import com.acegears.ace360x.theme.ThemeRepository
 import com.acegears.ace360x.theme.AceIcons
@@ -275,10 +282,38 @@ private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggle
     val scope = rememberCoroutineScope()
     val target = game.launchTarget()
     val launchable = target != null
+    val gameKey = game.uri.toString()
+    // Null until loaded from disk.
+    var loaded by remember(gameKey) { mutableStateOf<GameOverrides?>(null) }
+    val overrides = loaded ?: GameOverrides()
+    LaunchedEffect(gameKey) {
+        loaded = withContext(Dispatchers.IO) { GameOverridesStore.read(context.applicationContext, gameKey) }
+    }
+    // Non-null while the per-game settings dialog is open; holds the global settings it shows.
+    var dialogGlobal by remember { mutableStateOf<EmulatorSettings?>(null) }
+    dialogGlobal?.let { global ->
+        GameSettingsDialog(
+            gameName = game.displayName,
+            global = global,
+            initial = overrides,
+            onSave = { o ->
+                loaded = o
+                dialogGlobal = null
+                scope.launch(Dispatchers.IO) { GameOverridesStore.write(context.applicationContext, gameKey, o) }
+            },
+            onDismiss = { dialogGlobal = null },
+        )
+    }
     AceCard(
         onClick = {
             scope.launch {
-                val settings = SettingsRepository(context.applicationContext).current()
+                val global = SettingsRepository(context.applicationContext).current()
+                // UI state includes a just-saved change; fall back to disk if not loaded yet.
+                val settings = (
+                    loaded ?: withContext(Dispatchers.IO) {
+                        GameOverridesStore.read(context.applicationContext, gameKey)
+                    }
+                    ).applyTo(global)
                 val theme = ThemeRepository(context.applicationContext).customization.first()
                 val t = target ?: return@launch
                 context.startActivity(
@@ -305,6 +340,13 @@ private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggle
                 if (played.isNotEmpty()) {
                     Text(played, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                if (!overrides.isEmpty) {
+                    Text(
+                        "Has its own settings",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
                 if (!launchable) {
                     Text(
                         "Rescan this folder to make this game startable.",
@@ -312,6 +354,12 @@ private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggle
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            IconButton(
+                onClick = { scope.launch { dialogGlobal = SettingsRepository(context.applicationContext).current() } },
+                enabled = loaded != null,
+            ) {
+                Icon(AceIcons.Settings, contentDescription = "Settings for ${game.displayName}")
             }
             IconButton(onClick = onToggleFavorite) {
                 Icon(
