@@ -20,6 +20,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+      - name: Validate compatibility database
+        run: |
+          python3 scripts/validate-compat.py --self-test
+          python3 scripts/validate-compat.py
       - name: Install toolchain
         run: |
           sudo apt-get update -qq

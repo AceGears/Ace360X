@@ -215,4 +215,7 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   (`ThemeTest`). Visual review screenshots (Phase 9) need a device.
 - Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
   sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).
+- Compatibility DB: `compat/compat.json` exists and is empty (every title Untested);
+  entries need evidence and are validated in CI (`scripts/validate-compat.py`). The app
+  does not read it yet (no title-ID extraction).
 - Next: first on-device game launch by the user and their diagnostics report; fix what it shows.

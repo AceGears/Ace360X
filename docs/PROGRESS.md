@@ -182,3 +182,20 @@
 - How the themes look and perform on a phone: no screenshots, no frame timing for animated
   backgrounds. Phase 9 needs visual review screenshots from a device.
 - ktlint/detekt (CLAUDE.md §4) are still not set up in CI.
+
+## 2026-11-18 (night) — Per-game settings, compatibility database
+
+### Implemented (CI-built and unit-tested, not seen on a device)
+- Per-game settings: settings button on each game row. Resolution, anti-aliasing,
+  sharpening, picture shape, sound and guest VSync either follow the Settings tab or are
+  fixed for that game. Stored as a diff (one small file per game, schema v1). Controller and
+  touch options stay global. CI run 44436645746.
+- `compat/compat.json` (empty: every title is Untested), `compat/README.md` with the entry
+  format, and `scripts/validate-compat.py` run in CI: entries without evidence, with an
+  unknown status or with extra fields (e.g. an FPS claim) fail the build.
+
+### Not done
+- The app does not read the compatibility DB: it needs the title ID, which we do not extract
+  yet (would be a new parser for untrusted files, so it needs fuzzing first).
+- Remaining gaps: touch layout editing, analog touch triggers, cover art, ADPF hints,
+  in-game overlay, ZAR archives, ktlint/detekt.
