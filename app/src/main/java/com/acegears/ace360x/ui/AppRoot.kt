@@ -49,6 +49,9 @@ fun AppRoot() {
     AmbianceBackground {
         Scaffold(
             containerColor = Color.Transparent,
+            // A transparent container gives no default content colour, and plain Text
+            // then drew black on the dark theme; use the theme's text colour explicitly.
+            contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                     Tab.entries.forEach { t ->

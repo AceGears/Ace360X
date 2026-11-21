@@ -170,8 +170,8 @@ private fun StatusNote() {
     ) {
         Text(
             "Experimental build. Tap a disc image or package to start it. Expect many games " +
-                "not to boot or to run slowly. Connect a Bluetooth/USB controller to play; " +
-                "on-screen touch controls aren't available yet.",
+                "not to boot or to run slowly. Play with a Bluetooth/USB controller or the " +
+                "on-screen controls.",
             modifier = Modifier.padding(14.dp),
             style = MaterialTheme.typography.bodyMedium,
         )
