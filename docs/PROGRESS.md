@@ -199,3 +199,17 @@
   yet (would be a new parser for untrusted files, so it needs fuzzing first).
 - Remaining gaps: touch layout editing, analog touch triggers, cover art, ADPF hints,
   in-game overlay, ZAR archives, ktlint/detekt.
+
+## 2026-11-21 — First on-device game launch (user)
+
+### Verified on a device (evidence: docs/reports/device/2026-11-21-first-launch.md)
+- App installs and runs on a Samsung SM-S948U1 (SM8850, Adreno 840, Android 17): Library, SAF
+  folder scan, theme. Phase 2 "app launches on device" is met.
+- Naruto: Rise of a Ninja (disc image via SAF) loads; its XEX runs on the a64 JIT; kernel,
+  VFS, AAudio and the Vulkan GPU initialise. No crash in a 3.6 s session. Frames, menu, sound
+  and input not yet observed.
+
+### Fixed from that report
+- False "ended unexpectedly" banner after a normal quit (marker written after upstream's
+  quick_exit). Section headings drawn black on themed screens. Out-of-date Library notice.
+- Public `latest-debug` pre-release so the APK downloads without a GitHub account.

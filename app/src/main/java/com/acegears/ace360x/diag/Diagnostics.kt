@@ -64,7 +64,12 @@ object Diagnostics {
 
             w.appendLine("== Xenia log (tail) ==")
             val log = File(xeniaDir(context), "xenia.log")
-            if (log.exists()) w.appendLine(tail(log, MAX_XENIA_LOG_BYTES)) else w.appendLine("(no xenia.log yet)")
+            if (log.exists()) {
+                w.appendLine(tail(log, MAX_XENIA_LOG_BYTES))
+            } else {
+                // Upstream Xenia on Android logs only to logcat (tag "xenia"), included below.
+                w.appendLine("(Xenia logs to logcat on Android; see the logcat section)")
+            }
             w.appendLine()
 
             w.appendLine("== logcat (this app) ==")

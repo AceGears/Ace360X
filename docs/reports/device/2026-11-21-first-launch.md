@@ -1,0 +1,47 @@
+# First on-device game launch — 2026-11-21
+
+**Source:** diagnostics report shared by the user (`ace360x-diagnostics-20261121-170018.txt`),
+build `3e1dc4b` (debug). Not committed: it contains the full logcat of the user's phone.
+
+**Device:** Samsung SM-S948U1, Qualcomm SM8850, Adreno 840, Android 17 (API 37).
+Vulkan driver: Qualcomm proprietary, version 0x8034A013, build date 07/01/26, API 1.4.295
+(Xenia uses 1.3).
+
+**Title:** Naruto: Rise of a Ninja (Europe), disc image from the user's SAF folder. Title ID
+555307E5, media ID 12DF7A0D, `default.xex` module hash AA17DB7395C0A667.
+
+## What the log shows (session 17:00:13 – 17:00:17)
+
+| Time | Event |
+|---|---|
+| 13.93 | Xenia starts; memory, processor (a64 JIT), audio, graphics, HID, VFS, kernel initialise |
+| 13.94 | Vulkan device "Adreno (TM) 840" selected; all required features present |
+| 14.07 | Swapchain 3120×1440 created |
+| 14.09–14.14 | Disc image opened through `content://` (patch 0005); `default.xex` decrypted and parsed (basic compression, 194 xam + 349 kernel imports) |
+| 14.25 | Kernel launches the module; "Main XThread" runs guest PowerPC code on the a64 JIT |
+| 14.28–14.80 | The game creates ~16 guest threads, reads files from the disc, opens AAudio (48 kHz, MMAP low-latency path) |
+| 14.86 | Game configures the hardware scaler (16:9) — it is driving the GPU |
+| 14.93 | GPU command processor starts (0 cached shaders) |
+| 15.87 | User presses Back (1.6 s after the GPU started); quit dialog; Quit |
+| 17.83 | Xenia's normal exit ("Cheap-skate exit!"), process exit status 0 |
+
+No crash, fatal error or guest exception was logged. One guest file error
+(`ResolvePath(ERRasser.log) failed`) is the game probing for a debug log; harmless on desktop
+Xenia too. "Shader compilation failed" lines in the log are from Android's own UI renderer
+(HWUI thread), not from Xenia.
+
+## Conclusions
+
+- **First evidence that the core runs on a phone:** a retail XEX was loaded from a SAF disc
+  image and its code executed on the a64 JIT, with kernel, file system, audio and GPU set up.
+- **Not shown:** whether any frame was drawn, whether the game reaches its menu, sound output,
+  input. The session lasted 3.6 s. No compatibility status can be recorded yet.
+- **Bug found and fixed:** a normal quit showed "The last game session ended unexpectedly".
+  Upstream's native `OnDestroy` ends the process with `std::quick_exit`, so our clean-exit
+  marker, written after `super.onDestroy()`, never ran. It is now written before.
+- **Note:** on Android, upstream Xenia logs only to logcat; the report now says so instead of
+  "(no xenia.log yet)".
+
+## Next test requested from the user
+Leave the game running for at least 60 seconds, note what the screen shows (black, logos,
+menu) and whether there is sound, then quit and share diagnostics.

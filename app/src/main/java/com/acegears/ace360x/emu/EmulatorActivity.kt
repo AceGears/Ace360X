@@ -268,9 +268,13 @@ class EmulatorActivity : WindowedAppActivity() {
 
     override fun onDestroy() {
         val finishing = isFinishing
-        super.onDestroy()
+        // Must happen before super.onDestroy(): upstream's native OnDestroy ends the app with
+        // std::quick_exit ("Cheap-skate exit!"), so nothing after it runs. Marking afterwards
+        // made every normal quit show the "ended unexpectedly" banner (seen on device 2026-11-21).
         if (finishing) Diagnostics.markSessionEndedCleanly(this)
-        // Xenia's process-wide state can't be re-initialised for a second game.
+        super.onDestroy()
+        // Reached only if native code didn't exit. Xenia's process-wide state can't be
+        // re-initialised for a second game.
         if (finishing) Process.killProcess(Process.myPid())
     }
 }

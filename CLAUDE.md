@@ -218,4 +218,7 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
 - Compatibility DB: `compat/compat.json` exists and is empty (every title Untested);
   entries need evidence and are validated in CI (`scripts/validate-compat.py`). The app
   does not read it yet (no title-ID extraction).
-- Next: first on-device game launch by the user and their diagnostics report; fix what it shows.
+- Verified on device (2026-11-21, Samsung SM8850/Adreno 840, Android 17): app runs; a retail
+  disc image loads and its code executes on the a64 JIT with kernel/VFS/audio/GPU initialised
+  — `docs/reports/device/2026-11-21-first-launch.md`. Frames/menu not yet observed.
+- Next: a longer on-device run (≥ 60 s) to see whether frames are drawn; fix what it shows.
