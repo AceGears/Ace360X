@@ -140,6 +140,8 @@ jobs:
   android:
     name: Android debug APK
     needs: core
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
@@ -175,3 +177,15 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+      # A public download link that works without a GitHub account (artifact
+      # links need a signed-in browser). Always replaced by the newest main build.
+      - name: Publish to the "latest-debug" pre-release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/*.apk Ace360X-debug.apk
+          notes="Debug build of ${GITHUB_SHA::7}, built $(date -u +%F). Signed with the public debug key in ci/debug.keystore; not a release. Untested on devices unless docs/PROGRESS.md says otherwise."
+          gh release delete latest-debug --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest-debug Ace360X-debug.apk --prerelease \
+            --title "Latest debug build (${GITHUB_SHA::7})" --notes "$notes" --target "$GITHUB_SHA"
