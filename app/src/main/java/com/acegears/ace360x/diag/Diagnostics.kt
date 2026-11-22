@@ -40,8 +40,17 @@ object Diagnostics {
     fun consumeUnexpectedExit(context: Context): Boolean {
         val m = marker(context)
         if (!m.exists()) return false
+        // The game process is still running (or still shutting down): not an exit yet.
+        if (emuProcessAlive(context)) return false
         m.delete()
         return true
+    }
+
+    private fun emuProcessAlive(context: Context): Boolean {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+            ?: return false
+        val name = context.packageName + ":emu"
+        return am.runningAppProcesses.orEmpty().any { it.processName == name }
     }
 
     /** Blocking (reads files, runs logcat); call off the main thread. */

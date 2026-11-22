@@ -180,7 +180,14 @@ class EmulatorActivity : WindowedAppActivity() {
                             onDismissRequest = { confirmExit.value = false },
                             title = { Text("Quit game?") },
                             text = { Text("Progress since your last in-game save will be lost.") },
-                            confirmButton = { TextButton(onClick = { finish() }) { Text("Quit") } },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    // Before finish(): the Library resumes, and checks the marker,
+                                    // before this activity's onDestroy runs (seen on device).
+                                    Diagnostics.markSessionEndedCleanly(this@EmulatorActivity)
+                                    finish()
+                                }) { Text("Quit") }
+                            },
                             dismissButton = { TextButton(onClick = { confirmExit.value = false }) { Text("Keep playing") } },
                         )
                     }
