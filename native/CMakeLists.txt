@@ -19,6 +19,10 @@ if(ANDROID)
     include(cmake/ApplyXeniaPatches.cmake)
     include(cmake/XeniaVersion.cmake)
     set(XENIA_DISABLE_WERROR ON)  # see native/patches/README.md
+    # GPU frame capture (Device tab → Graphics frame capture) for debugging graphics on
+    # devices. Upstream measured the instrumentation at 0.4-0.6 % CPU time
+    # (src/xenia/gpu/trace_writer.h); revisit before a release build.
+    set(XENIA_ENABLE_GPU_TRACE ON CACHE BOOL "" FORCE)
     # Everything is linked into one .so: keep core symbols hidden (only JNIEXPORT
     # functions are exported). Required by FFmpeg's NEON assembly, which uses
     # PC-relative references to its C tables, and keeps the library smaller.

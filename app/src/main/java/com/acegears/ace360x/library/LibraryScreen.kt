@@ -1,5 +1,6 @@
 package com.acegears.ace360x.library
 
+import com.acegears.ace360x.diag.GpuTrace
 import com.acegears.ace360x.settings.EmulatorSettings
 import com.acegears.ace360x.settings.GameSettingsDialog
 import com.acegears.ace360x.settings.GameOverridesStore
@@ -319,6 +320,7 @@ private fun GameRow(game: GameEntry, favorite: Boolean, stat: PlayStat, onToggle
                 context.startActivity(
                     EmulatorActivity.launchIntent(
                         context, t, game.displayName, settings, statsKey = game.uri.toString(), theme = theme,
+                        gpuTraceDir = GpuTrace.consumeForLaunch(context.applicationContext),
                     ),
                 )
             }

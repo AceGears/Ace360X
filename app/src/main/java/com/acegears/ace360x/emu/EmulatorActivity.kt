@@ -1,5 +1,6 @@
 package com.acegears.ace360x.emu
 
+import com.acegears.ace360x.diag.GpuTrace
 import com.acegears.ace360x.theme.ThemeCustomization
 import com.acegears.ace360x.theme.AceTheme
 import com.acegears.ace360x.BuildConfig
@@ -75,6 +76,7 @@ class EmulatorActivity : WindowedAppActivity() {
             settings: EmulatorSettings,
             statsKey: String = target,
             theme: ThemeCustomization = ThemeCustomization(),
+            gpuTraceDir: java.io.File? = null,
         ): Intent {
             val storage = File(context.filesDir, "xenia").apply { mkdirs() }
             val cvars = Bundle().apply {
@@ -86,6 +88,11 @@ class EmulatorActivity : WindowedAppActivity() {
                 // Debug builds: dark blue letterbox bars (patch 0015), so a black game image can
                 // be told apart from nothing reaching the screen. Release builds keep black.
                 if (BuildConfig.DEBUG) putInt("present_letterbox_color", DEBUG_LETTERBOX_RGB)
+                // One-shot GPU frame capture (Device tab); path cvars take a String.
+                if (gpuTraceDir != null) {
+                    putString("trace_gpu_prefix", gpuTraceDir.absolutePath + "/")
+                    putString("trace_gpu_frames", GpuTrace.FRAMES)
+                }
                 // Bundle value types must match each cvar's type (see EmulatorSettings.toCvars).
                 settings.toCvars().forEach { (key, value) ->
                     when (value) {
