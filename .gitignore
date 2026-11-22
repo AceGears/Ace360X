@@ -15,3 +15,4 @@ timeout-*
 # Release keys must never be committed (ci/debug.keystore is debug-only and public on purpose)
 *.jks
 release.keystore
+app/src/debug/jniLibs/

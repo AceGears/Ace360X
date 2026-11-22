@@ -112,3 +112,16 @@ menu) and whether there is sound, then quit and share diagnostics.
   the game's sound.
 - Next: "Replay on this phone" (Device tab) replays the same capture on the phone with
   several GPU cvar variants and saves each image, to find which GPU path fails.
+
+## On-phone replay (2026-11-22, build 87581ea)
+
+- The user's capture of frame 900 (title screen) replayed **on the phone** with six cvar
+  variants: **all black**, except variant 3 (`gamma_render_target_as_unorm16=false`) which
+  shows a few small blue fragments at the top-left. The same trace renders correctly on
+  lavapipe. So the failure reproduces offline, in about 1.5 s per replay, without the game.
+- None of the tried cvars fixes it. The variant 7 result was missing from the results file
+  (a race between the worker thread and UI list; fixed).
+- No Adreno driver errors are logged in the emulator process ("Pipeline create failed" lines
+  are from the main app process's UI renderer).
+- Next: replay with the Khronos validation layer (debug APK only) to find invalid Vulkan
+  usage that the Adreno driver handles differently from Mesa.

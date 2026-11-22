@@ -77,7 +77,9 @@ android {
     }
 
     packaging {
-        jniLibs { useLegacyPackaging = false }
+        // Extracted native libs, so the Vulkan loader can find the debug-only validation
+        // layer in the app's library directory (it is absent from release builds).
+        jniLibs { useLegacyPackaging = true }
     }
 }
 

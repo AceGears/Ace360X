@@ -15,6 +15,7 @@ against the final `.so` symbols before any release.
 | imgui | MIT | |
 | VulkanMemoryAllocator | MIT | |
 | Vulkan-Headers | Apache 2.0 or MIT | |
+| Vulkan-ValidationLayers (`libVkLayer_khronos_validation.so`) | Apache 2.0 | **Debug APK only**, fetched in CI by `scripts/ci-fetch-validation-layer.sh` (pinned tag); not in release builds |
 | glslang | BSD 3-Clause (+ others per file) | |
 | xbyak_aarch64 | Apache 2.0 | ARM64 code emitter used by the JIT |
 | capstone | BSD 3-Clause / LLVM licence | disassembler |

@@ -62,6 +62,7 @@ class TraceReplayActivity : ComponentActivity() {
             mkdirs()
         }
         thread(name = "trace-replay") {
+            val done = mutableListOf<Outcome>()
             VARIANTS.forEachIndexed { i, v ->
                 status.value = "Replaying ${trace.name}: ${i + 1} of ${VARIANTS.size} (${v.label})"
                 val png = File(outDir, "replay-%02d.png".format(i + 1))
@@ -69,16 +70,20 @@ class TraceReplayActivity : ComponentActivity() {
                 val error = runCatching { NativeBridge.replayTrace(trace.absolutePath, png.absolutePath, v.cvars) }
                     .getOrElse { "exception: ${it.message}" }
                 val took = System.currentTimeMillis() - start
-                runOnUiThread { outcomes += Outcome(v, png.takeIf { it.exists() }, error, took) }
+                val outcome = Outcome(v, png.takeIf { it.exists() }, error, took)
+                done += outcome
+                runOnUiThread { outcomes += outcome }
             }
+            // From the thread's own list: the UI list may not have the last result yet.
             File(outDir, "replay-results.txt").writeText(
-                outcomes.joinToString("\n", prefix = "Replay of ${trace.name}\n") { o ->
+                done.joinToString("\n", prefix = "Replay of ${trace.name}\n") { o ->
                     "${o.variant.label} [${o.variant.cvars.joinToString { "${it.first}=${it.second}" }}]: " +
                         (if (o.png != null) "image ${o.png.name}" else "no image") +
                         (if (o.error.isNotEmpty()) " error: ${o.error}" else "") + " (${o.millis} ms)"
                 },
             )
-            status.value = "Done. Share the images (and the results file) with the developer."
+            status.value = "Done. Share the images and results file, then share diagnostics " +
+                "from the About tab (it contains the validation messages)."
             running.value = false
         }
     }
@@ -135,6 +140,10 @@ class TraceReplayActivity : ComponentActivity() {
             Variant("5 No 3D-to-2D texture", listOf("gpu_3d_to_2d_texture" to "false")),
             Variant("6 Depth float24 in pixel shader", listOf("depth_float24_convert_in_pixel_shader" to "true")),
             Variant(
+                "8 Default + Vulkan validation (reports errors to the log; slow)",
+                listOf("vulkan_validation" to "true"),
+            ),
+            Variant(
                 "7 All of the above",
                 listOf(
                     "vulkan_sparse_shared_memory" to "false",
@@ -143,6 +152,10 @@ class TraceReplayActivity : ComponentActivity() {
                     "gpu_3d_to_2d_texture" to "false",
                     "depth_float24_convert_in_pixel_shader" to "true",
                 ),
+            ),
+            Variant(
+                "8 Default + Vulkan validation (writes errors to the log; slower)",
+                listOf("vulkan_validation" to "true"),
             ),
         )
     }
