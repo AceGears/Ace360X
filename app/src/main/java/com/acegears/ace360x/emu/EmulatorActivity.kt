@@ -2,6 +2,7 @@ package com.acegears.ace360x.emu
 
 import com.acegears.ace360x.theme.ThemeCustomization
 import com.acegears.ace360x.theme.AceTheme
+import com.acegears.ace360x.BuildConfig
 import com.acegears.ace360x.theme.AceDialog
 import android.content.Context
 import android.content.Intent
@@ -64,6 +65,7 @@ class EmulatorActivity : WindowedAppActivity() {
         private const val EXTRA_DEAD_ZONE = "com.acegears.ace360x.DEAD_ZONE"
         private const val EXTRA_BINDINGS = "com.acegears.ace360x.BINDINGS"
         private const val EXTRA_THEME = "com.acegears.ace360x.THEME"
+        private const val DEBUG_LETTERBOX_RGB = 0x10307A
 
         /** [target] is a content:// document URI or an acetree:// path (see SafTree). */
         fun launchIntent(
@@ -81,6 +83,9 @@ class EmulatorActivity : WindowedAppActivity() {
                 putString("storage_root", storage.absolutePath)
                 putString("log_file", File(storage, "xenia.log").absolutePath)
                 putBoolean("discord", false)
+                // Debug builds: dark blue letterbox bars (patch 0015), so a black game image can
+                // be told apart from nothing reaching the screen. Release builds keep black.
+                if (BuildConfig.DEBUG) putInt("present_letterbox_color", DEBUG_LETTERBOX_RGB)
                 // Bundle value types must match each cvar's type (see EmulatorSettings.toCvars).
                 settings.toCvars().forEach { (key, value) ->
                     when (value) {

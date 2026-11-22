@@ -71,3 +71,17 @@ menu) and whether there is sound, then quit and share diagnostics.
   the session marker. Fixed by clearing the marker on Quit and ignoring it while `:emu` is
   alive.
 - Patch 0014 logs presenter results so the next run shows whether frames reach the screen.
+
+## Fourth run (22:53:17 – 22:57:47, build afa8382, about 4.5 min)
+
+- **The game runs at a steady 30 guest frames per second** (150 swaps every 5 s, from +5 s
+  to the end), 1280×720, about 5,500 draw calls per second after the menu loads. This is
+  the guest frame rate measured by the command processor, not a host-display FPS.
+- **Every presenter paint (30/s) returns `VK_SUBOPTIMAL_KHR`**, none fail, guest output is
+  active. Yet the screen shows only black with the on-screen controls (user screenshot).
+- Suboptimal on Android typically means the swapchain `preTransform` (identity here) differs
+  from the surface's current rotation; Android should still compose such frames. So either
+  the guest image itself is black, or the composed SurfaceView isn't visible.
+- Patch 0015 colours the letterbox bars dark blue in debug builds to tell these apart.
+- Install note: Google Play Protect blocked the update ("hasn't seen an app from this
+  developer"); expected for a debug build signed with a public key.

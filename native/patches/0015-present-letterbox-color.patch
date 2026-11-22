@@ -1,0 +1,39 @@
+diff --git a/src/xenia/ui/vulkan/vulkan_presenter.cc b/src/xenia/ui/vulkan/vulkan_presenter.cc
+index 68b97e7..d57bea3 100644
+--- a/src/xenia/ui/vulkan/vulkan_presenter.cc
++++ b/src/xenia/ui/vulkan/vulkan_presenter.cc
+@@ -30,6 +30,10 @@
+ 
+ // Note: If the priorities in the description are changed, update the actual
+ // present mode selection logic.
++DEFINE_uint32(present_letterbox_color, 0x000000,
++              "Colour (0xRRGGBB, linear in the swapchain format) of the area "
++              "around the guest output.",
++              "Display");
+ DEFINE_bool(
+     vulkan_allow_present_mode_immediate, true,
+     "When available, allow the immediate presentation mode (1st priority), "
+@@ -1483,10 +1487,19 @@ Presenter::PaintResult VulkanPresenter::PaintAndPresentImpl(
+   VkClearAttachment swapchain_image_clear_attachment;
+   swapchain_image_clear_attachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   swapchain_image_clear_attachment.colorAttachment = 0;
+-  swapchain_image_clear_attachment.clearValue.color.float32[0] = 0.0f;
+-  swapchain_image_clear_attachment.clearValue.color.float32[1] = 0.0f;
+-  swapchain_image_clear_attachment.clearValue.color.float32[2] = 0.0f;
+-  swapchain_image_clear_attachment.clearValue.color.float32[3] = 1.0f;
++  {
++    // Ace360X (patch 0015): configurable colour for the area around the guest
++    // output (letterbox bars), so a device test can tell "the presenter reaches
++    // the screen" apart from "the guest image is black".
++    uint32_t rgb = cvars::present_letterbox_color;
++    swapchain_image_clear_attachment.clearValue.color.float32[0] =
++        float((rgb >> 16) & 0xFF) / 255.0f;
++    swapchain_image_clear_attachment.clearValue.color.float32[1] =
++        float((rgb >> 8) & 0xFF) / 255.0f;
++    swapchain_image_clear_attachment.clearValue.color.float32[2] =
++        float(rgb & 0xFF) / 255.0f;
++    swapchain_image_clear_attachment.clearValue.color.float32[3] = 1.0f;
++  }
+ 
+   VkRenderPassBeginInfo swapchain_render_pass_begin_info;
+   swapchain_render_pass_begin_info.sType =
