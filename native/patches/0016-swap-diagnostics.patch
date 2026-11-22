@@ -1,0 +1,76 @@
+diff --git a/src/xenia/gpu/vulkan/vulkan_command_processor.cc b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+index 15f9875..fbdc6a3 100644
+--- a/src/xenia/gpu/vulkan/vulkan_command_processor.cc
++++ b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+@@ -40,6 +40,16 @@
+ DECLARE_bool(clear_memory_page_state);
+ DECLARE_bool(readback_resolve_half_pixel_offset);
+ 
++// Ace360X (patch 0016): device graphics diagnostics, off by default.
++DEFINE_bool(ace_swap_stats, false,
++            "Log how much of the guest front buffer in guest memory is non-zero "
++            "at each swap (meaningful with readback_resolve=full).",
++            "GPU");
++DEFINE_bool(ace_swap_debug_clear, false,
++            "Overwrite the guest output with magenta after the gamma pass, to "
++            "check the path from the guest output image to the screen/capture.",
++            "GPU");
++
+ DEFINE_bool(vulkan_depth_bias_force_unorm, true,
+             "Apply the depth bias in constant units on float depth buffers "
+             "where VK_EXT_depth_bias_control supports it, so the bias keeps "
+@@ -1486,6 +1496,28 @@ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr,
+     return;
+   }
+ 
++  if (cvars::ace_swap_stats) {
++    xenos::xe_gpu_texture_fetch_t stats_fetch =
++        register_file_->GetTextureFetch(0);
++    uint32_t stats_base = uint32_t(stats_fetch.base_address) << 12;
++    uint32_t stats_length = frontbuffer_width * frontbuffer_height * 4;
++    uint64_t sampled = 0, nonzero = 0, sum = 0;
++    if (stats_base && stats_length &&
++        uint64_t(stats_base) + stats_length <= 0x20000000ull) {
++      const uint8_t* stats_data = memory_->TranslatePhysical(stats_base);
++      for (uint32_t i = 0; i < stats_length; i += 61) {
++        ++sampled;
++        nonzero += stats_data[i] != 0;
++        sum += stats_data[i];
++      }
++    }
++    XELOGI(
++        "Swap stats: front buffer {:08X} {}x{} (fetch 0 base {:08X}); guest "
++        "memory sample: {} of {} bytes non-zero, average {}",
++        frontbuffer_ptr, frontbuffer_width, frontbuffer_height, stats_base,
++        nonzero, sampled, sampled ? sum / sampled : 0);
++  }
++
+   // Obtaining the actual front buffer size to pass to RefreshGuestOutput,
+   // resolution-scaled if it's a resolve destination, or not otherwise.
+   uint32_t frontbuffer_width_scaled, frontbuffer_height_scaled;
+@@ -1790,6 +1822,25 @@ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr,
+ 
+         deferred_command_buffer_.CmdVkDraw(3, 1, 0, 0);
+ 
++        if (cvars::ace_swap_debug_clear) {
++          VkClearAttachment debug_clear_attachment;
++          debug_clear_attachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
++          debug_clear_attachment.colorAttachment = 0;
++          debug_clear_attachment.clearValue.color.float32[0] = 1.0f;
++          debug_clear_attachment.clearValue.color.float32[1] = 0.0f;
++          debug_clear_attachment.clearValue.color.float32[2] = 1.0f;
++          debug_clear_attachment.clearValue.color.float32[3] = 1.0f;
++          VkClearRect debug_clear_rect;
++          debug_clear_rect.rect.offset.x = 0;
++          debug_clear_rect.rect.offset.y = 0;
++          debug_clear_rect.rect.extent.width = frontbuffer_width_scaled / 2;
++          debug_clear_rect.rect.extent.height = frontbuffer_height_scaled;
++          debug_clear_rect.baseArrayLayer = 0;
++          debug_clear_rect.layerCount = 1;
++          deferred_command_buffer_.CmdVkClearAttachments(
++              1, &debug_clear_attachment, 1, &debug_clear_rect);
++        }
++
+         deferred_command_buffer_.CmdVkEndRenderPass();
+         current_render_pass_ = VK_NULL_HANDLE;
+ 

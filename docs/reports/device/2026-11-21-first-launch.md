@@ -125,3 +125,13 @@ menu) and whether there is sound, then quit and share diagnostics.
   are from the main app process's UI renderer).
 - Next: replay with the Khronos validation layer (debug APK only) to find invalid Vulkan
   usage that the Adreno driver handles differently from Mesa.
+
+## Validation run and next bisect step (2026-11-22, build df77831)
+
+- On-phone replay with `VK_LAYER_KHRONOS_validation` loaded (confirmed in logcat): **no
+  validation errors** for the frame (only two shader-cache file warnings). All 8 variants
+  black. So the black image is not explained by invalid Vulkan usage that the layer detects.
+- Patch 0016 adds two diagnostics, checked on lavapipe with the same capture: front-buffer
+  readback statistics (74 % of sampled bytes non-zero on lavapipe) and a magenta test
+  pattern. On the phone they will show whether pixels are lost before the resolve (render
+  targets / EDRAM emulation) or after it (texture load / gamma pass / guest output).

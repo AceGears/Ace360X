@@ -46,6 +46,7 @@ class TraceReplayActivity : ComponentActivity() {
     private val outcomes = mutableStateListOf<Outcome>()
     private val running = mutableStateOf(true)
     private val status = mutableStateOf("Starting…")
+    private val logNotes = mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,16 +75,26 @@ class TraceReplayActivity : ComponentActivity() {
                 done += outcome
                 runOnUiThread { outcomes += outcome }
             }
+            // Diagnostic lines the replays wrote to the log (patch 0016), so one shared
+            // file carries them.
+            val notes = runCatching {
+                val p = ProcessBuilder("logcat", "-d", "-t", "30000", "-s", "ace360x-replay:*")
+                    .redirectErrorStream(true).start()
+                val lines = p.inputStream.bufferedReader().readLines()
+                p.waitFor()
+                lines.filter { "Swap stats" in it || "Validation Error" in it || " E ace360x-replay" in it }
+                    .map { it.substringAfter("ace360x-replay: ") }
+            }.getOrElse { listOf("could not read log: ${it.message}") }
+            runOnUiThread { logNotes.value = notes.joinToString("\n") }
             // From the thread's own list: the UI list may not have the last result yet.
             File(outDir, "replay-results.txt").writeText(
                 done.joinToString("\n", prefix = "Replay of ${trace.name}\n") { o ->
                     "${o.variant.label} [${o.variant.cvars.joinToString { "${it.first}=${it.second}" }}]: " +
                         (if (o.png != null) "image ${o.png.name}" else "no image") +
                         (if (o.error.isNotEmpty()) " error: ${o.error}" else "") + " (${o.millis} ms)"
-                },
+                } + "\n\nNotes from the log:\n" + notes.joinToString("\n"),
             )
-            status.value = "Done. Share the images and results file, then share diagnostics " +
-                "from the About tab (it contains the validation messages)."
+            status.value = "Done. Tap Share results and send everything to the developer."
             running.value = false
         }
     }
@@ -112,6 +123,7 @@ class TraceReplayActivity : ComponentActivity() {
             Text(status.value, style = MaterialTheme.typography.bodyMedium)
             if (running.value) AceCircularProgress()
             if (!running.value && outcomes.isNotEmpty()) Button(onClick = ::share) { Text("Share results") }
+            if (logNotes.value.isNotEmpty()) Text(logNotes.value, style = MaterialTheme.typography.bodySmall)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(outcomes) { o ->
                     AceCard(Modifier.fillMaxWidth()) {
@@ -134,25 +146,11 @@ class TraceReplayActivity : ComponentActivity() {
         /** Variants to compare; each changes one GPU path that differs between drivers. */
         val VARIANTS = listOf(
             Variant("1 Default settings", emptyList()),
-            Variant("2 No sparse shared memory", listOf("vulkan_sparse_shared_memory" to "false")),
-            Variant("3 Gamma render target as 8-bit", listOf("gamma_render_target_as_unorm16" to "false")),
-            Variant("4 No discard in transfer pipelines", listOf("no_discard_stencil_in_transfer_pipelines" to "true")),
-            Variant("5 No 3D-to-2D texture", listOf("gpu_3d_to_2d_texture" to "false")),
-            Variant("6 Depth float24 in pixel shader", listOf("depth_float24_convert_in_pixel_shader" to "true")),
             Variant(
-                "7 All of the above",
-                listOf(
-                    "vulkan_sparse_shared_memory" to "false",
-                    "gamma_render_target_as_unorm16" to "false",
-                    "no_discard_stencil_in_transfer_pipelines" to "true",
-                    "gpu_3d_to_2d_texture" to "false",
-                    "depth_float24_convert_in_pixel_shader" to "true",
-                ),
+                "2 Read the game's finished frame back from the GPU (result is a number, in the notes)",
+                listOf("ace_swap_stats" to "true", "readback_resolve" to "\"full\""),
             ),
-            Variant(
-                "8 Default + Vulkan validation (writes errors to the log; slower)",
-                listOf("vulkan_validation" to "true"),
-            ),
+            Variant("3 Test pattern: left half should be magenta", listOf("ace_swap_debug_clear" to "true")),
         )
     }
 }
