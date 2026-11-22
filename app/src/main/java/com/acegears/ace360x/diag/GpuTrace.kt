@@ -47,6 +47,39 @@ object GpuTrace {
         dir(context).deleteRecursively()
     }
 
+    /**
+     * Some apps (e.g. the Claude app) don't accept binary `.xtr` files but do accept
+     * text files. Writes each trace as gzip + Base64 text with a one-line header, in
+     * share/gputrace-text/. Blocking; call off the main thread.
+     */
+    fun writeTextCopies(context: Context, files: List<File>): List<File> {
+        val out = File(context.cacheDir, "share/gputrace-text")
+        out.deleteRecursively()
+        out.mkdirs()
+        return files.map { src ->
+            val gz = java.io.ByteArrayOutputStream()
+            java.util.zip.GZIPOutputStream(gz).use { z -> src.inputStream().use { it.copyTo(z) } }
+            val dst = File(out, src.name + ".gz.b64.txt")
+            dst.bufferedWriter().use { w ->
+                w.write("ACE360X-GPU-TRACE ${src.name} bytes=${src.length()} format=gzip+base64\n")
+                w.write(android.util.Base64.encodeToString(gz.toByteArray(), android.util.Base64.DEFAULT))
+            }
+            dst
+        }
+    }
+
+    fun shareTextIntent(context: Context, files: List<File>): Intent {
+        val uris = ArrayList(
+            files.map { FileProvider.getUriForFile(context, "${context.packageName}.diagnostics", it) },
+        )
+        val send = Intent(Intent.ACTION_SEND_MULTIPLE)
+            .setType("text/plain")
+            .putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            .putExtra(Intent.EXTRA_SUBJECT, "Ace360X GPU frame traces (text)")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return Intent.createChooser(send, "Share GPU captures as text")
+    }
+
     fun shareIntent(context: Context, files: List<File>): Intent {
         val uris = ArrayList(
             files.map { FileProvider.getUriForFile(context, "${context.packageName}.diagnostics", it) },

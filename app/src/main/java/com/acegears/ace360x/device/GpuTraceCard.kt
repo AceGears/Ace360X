@@ -14,6 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +35,8 @@ fun GpuTraceCard() {
     val context = LocalContext.current
     var armed by remember { mutableStateOf(GpuTrace.isArmed(context)) }
     var traces by remember { mutableStateOf<List<File>>(emptyList()) }
+    var preparing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     LifecycleResumeEffect(Unit) {
         armed = GpuTrace.isArmed(context)
         traces = GpuTrace.traces(context)
@@ -63,9 +69,28 @@ fun GpuTraceCard() {
                         "game's graphics data; share them only for debugging.",
                     style = MaterialTheme.typography.bodySmall,
                 )
+                Text(
+                    "If an app won't accept the captures, use \"Share as text\": the same data " +
+                        "as text files, which most apps (including Claude) accept.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { context.startActivity(GpuTrace.shareIntent(context, traces)) }) {
-                        Text("Share captures")
+                    Button(
+                        enabled = !preparing,
+                        onClick = {
+                            preparing = true
+                            scope.launch {
+                                val text = withContext(Dispatchers.IO) {
+                                    runCatching { GpuTrace.writeTextCopies(context, traces) }.getOrNull()
+                                }
+                                preparing = false
+                                if (text != null) context.startActivity(GpuTrace.shareTextIntent(context, text))
+                            }
+                        },
+                    ) { Text(if (preparing) "Preparing…" else "Share as text") }
+                    TextButton(onClick = { context.startActivity(GpuTrace.shareIntent(context, traces)) }) {
+                        Text("Share files")
                     }
                     TextButton(onClick = {
                         GpuTrace.delete(context)
