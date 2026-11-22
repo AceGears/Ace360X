@@ -85,3 +85,16 @@ menu) and whether there is sound, then quit and share diagnostics.
 - Patch 0015 colours the letterbox bars dark blue in debug builds to tell these apart.
 - Install note: Google Play Protect blocked the update ("hasn't seen an app from this
   developer"); expected for a debug build signed with a public key.
+
+## Fifth run (23:46:52 – 23:47:20, build 9d63b62, 28 s) — letterbox test
+
+- **The dark blue letterbox bars are visible** (user screenshot), the 16:9 area between them
+  is black. So the presenter's images reach the display; Android composition, the SurfaceView
+  and the swapchain work. **The guest image itself is black.**
+- The game again swaps 30 frames/s at 1280×720 with up to ~5,500 draws/s.
+- Next suspect: the GPU emulation path on the Adreno proprietary driver (render-target
+  emulation, EDRAM resolve or texture loading producing an empty front buffer). No Xenia
+  warning or shader error is logged.
+- Second issue: after the swapchain was recreated at +9 s (surface change), no further
+  presenter paint was logged for the remaining 19 s, while the guest kept swapping. Guest
+  output may stop refreshing after a surface change on Android; to investigate separately.
