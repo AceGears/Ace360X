@@ -135,3 +135,13 @@ menu) and whether there is sound, then quit and share diagnostics.
   readback statistics (74 % of sampled bytes non-zero on lavapipe) and a magenta test
   pattern. On the phone they will show whether pixels are lost before the resolve (render
   targets / EDRAM emulation) or after it (texture load / gamma pass / guest output).
+
+## Bisect step 1 result (2026-11-22, build 3b47952)
+
+- Magenta test pattern appears in the on-phone capture: the gamma pass target, guest output
+  image and capture path work on the Adreno 840.
+- Front-buffer readback on the phone: **0 of 60,433 sampled bytes non-zero** (lavapipe:
+  44,576). So nothing visible reaches guest memory through resolve + readback: the loss is
+  in rendering to host render targets, the resolve, or shared memory, not in the final pass.
+- Patch 0017 lets the replay disable groups of optional driver features to find which
+  fallback path, if any, produces pixels on the phone.

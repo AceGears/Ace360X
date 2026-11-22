@@ -1,0 +1,82 @@
+diff --git a/src/xenia/ui/vulkan/vulkan_device.cc b/src/xenia/ui/vulkan/vulkan_device.cc
+index 80d9957..247d5f0 100644
+--- a/src/xenia/ui/vulkan/vulkan_device.cc
++++ b/src/xenia/ui/vulkan/vulkan_device.cc
+@@ -9,6 +9,7 @@
+ 
+ #include "xenia/ui/vulkan/vulkan_device.h"
+ 
++#include "xenia/base/cvar.h"
+ #include "xenia/base/assert.h"
+ #include "xenia/base/logging.h"
+ #include "xenia/base/platform.h"
+@@ -19,6 +20,15 @@
+ #include <unordered_map>
+ #include <vector>
+ 
++// Ace360X (patch 0017): device graphics diagnostics.
++DEFINE_string(
++    ace_vulkan_disable_features, "",
++    "Comma-separated optional Vulkan features/extensions to treat as "
++    "unsupported after device creation (e.g. \"geometryShader,"
++    "EXT_shader_stencil_export\"), forcing Xenia's fallback paths. For "
++    "bisecting driver problems.",
++    "Vulkan");
++
+ namespace xe {
+ namespace ui {
+ namespace vulkan {
+@@ -919,6 +929,53 @@ std::unique_ptr<VulkanDevice> VulkanDevice::CreateIfSupported(
+     }
+   }
+ 
++  if (!cvars::ace_vulkan_disable_features.empty()) {
++    const std::string list = "," + cvars::ace_vulkan_disable_features + ",";
++    auto listed = [&list](const char* name) {
++      return list.find(std::string(",") + name + ",") != std::string::npos;
++    };
++    Properties& p = device->properties_;
++    Extensions& e = device->extensions_;
++#define ACE_DISABLE_PROPERTY(name) \
++  if (listed(#name) && p.name) {   \
++    p.name = false;                \
++    XELOGW("Ace360X: treating Vulkan feature " #name " as unsupported"); \
++  }
++    ACE_DISABLE_PROPERTY(geometryShader)
++    ACE_DISABLE_PROPERTY(tessellationShader)
++    ACE_DISABLE_PROPERTY(sampleRateShading)
++    ACE_DISABLE_PROPERTY(depthClamp)
++    ACE_DISABLE_PROPERTY(fillModeNonSolid)
++    ACE_DISABLE_PROPERTY(shaderClipDistance)
++    ACE_DISABLE_PROPERTY(shaderCullDistance)
++    ACE_DISABLE_PROPERTY(sparseBinding)
++    ACE_DISABLE_PROPERTY(sparseResidencyBuffer)
++    ACE_DISABLE_PROPERTY(uniformBufferStandardLayout)
++    ACE_DISABLE_PROPERTY(scalarBlockLayout)
++    ACE_DISABLE_PROPERTY(imageViewFormatReinterpretation)
++    ACE_DISABLE_PROPERTY(imageViewFormatSwizzle)
++    ACE_DISABLE_PROPERTY(pointPolygons)
++    ACE_DISABLE_PROPERTY(triangleFans)
++    ACE_DISABLE_PROPERTY(shaderSampleRateInterpolationFunctions)
++    ACE_DISABLE_PROPERTY(shaderSignedZeroInfNanPreserveFloat32)
++    ACE_DISABLE_PROPERTY(shaderDenormFlushToZeroFloat32)
++    ACE_DISABLE_PROPERTY(shaderRoundingModeRTEFloat32)
++    ACE_DISABLE_PROPERTY(shaderDemoteToHelperInvocation)
++#undef ACE_DISABLE_PROPERTY
++    if (listed("EXT_shader_stencil_export")) {
++      e.ext_EXT_shader_stencil_export = false;
++    }
++    if (listed("EXT_sample_locations")) {
++      e.ext_EXT_sample_locations = false;
++      p.sampleLocationSampleCounts = 0;
++      p.variableSampleLocations = false;
++    }
++    if (listed("EXT_conditional_rendering")) {
++      e.ext_EXT_conditional_rendering = false;
++      p.conditionalRendering = false;
++    }
++  }
++
+   return device;
+ }
+ 

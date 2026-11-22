@@ -144,13 +144,38 @@ class TraceReplayActivity : ComponentActivity() {
 
     companion object {
         /** Variants to compare; each changes one GPU path that differs between drivers. */
+        private val STATS = listOf("ace_swap_stats" to "true", "readback_resolve" to "\"full\"")
+        private fun without(label: String, features: String) =
+            Variant(label, STATS + ("ace_vulkan_disable_features" to "\"$features\""))
+
+        /**
+         * Each variant makes Xenia avoid one group of optional driver features (patch 0017).
+         * All of them render the reference capture correctly on Mesa lavapipe.
+         */
         val VARIANTS = listOf(
-            Variant("1 Default settings", emptyList()),
-            Variant(
-                "2 Read the game's finished frame back from the GPU (result is a number, in the notes)",
-                listOf("ace_swap_stats" to "true", "readback_resolve" to "\"full\""),
+            Variant("1 Default", STATS),
+            without("2 No geometry shaders", "geometryShader"),
+            without("3 No tessellation shaders", "tessellationShader"),
+            without(
+                "4 No stencil export / sample locations / conditional rendering",
+                "EXT_shader_stencil_export,EXT_sample_locations,EXT_conditional_rendering",
             ),
-            Variant("3 Test pattern: left half should be magenta", listOf("ace_swap_debug_clear" to "true")),
+            without("5 No depth clamp / clip and cull distances", "depthClamp,shaderClipDistance,shaderCullDistance"),
+            without(
+                "6 No float controls / demote",
+                "shaderSignedZeroInfNanPreserveFloat32,shaderDenormFlushToZeroFloat32," +
+                    "shaderRoundingModeRTEFloat32,shaderDemoteToHelperInvocation",
+            ),
+            without(
+                "7 No view swizzle / reinterpretation / scalar layouts",
+                "imageViewFormatSwizzle,imageViewFormatReinterpretation,scalarBlockLayout,uniformBufferStandardLayout",
+            ),
+            without(
+                "8 No sparse memory / misc",
+                "sampleRateShading,fillModeNonSolid,pointPolygons,triangleFans," +
+                    "shaderSampleRateInterpolationFunctions,sparseBinding,sparseResidencyBuffer",
+            ),
+            Variant("9 Gamma render target as 8-bit", STATS + ("gamma_render_target_as_unorm16" to "false")),
         )
     }
 }
