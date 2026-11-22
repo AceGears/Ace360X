@@ -22,6 +22,11 @@
             </intent-filter>
         </activity>
         <!-- Game screen: separate process (see EmulatorActivity), landscape, full screen. -->
+        <!-- Replays GPU frame captures for debugging; own process so Xenia state stays isolated. -->
+        <activity
+            android:name=".diag.TraceReplayActivity"
+            android:process=":replay"
+            android:exported="false" />
         <activity
             android:name=".emu.EmulatorActivity"
             android:process=":emu"

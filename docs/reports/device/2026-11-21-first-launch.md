@@ -98,3 +98,17 @@ menu) and whether there is sound, then quit and share diagnostics.
 - Second issue: after the swapchain was recreated at +9 s (surface change), no further
   presenter paint was logged for the remaining 19 s, while the guest kept swapping. Guest
   output may stop refreshing after a surface change on Android; to investigate separately.
+
+## GPU frame captures replayed on a reference driver (2026-11-22)
+
+- The user captured guest frames 450 and 900 on the phone (build d11d3ad), shared as text.
+- Replayed here with unmodified upstream `xenia-gpu-vulkan-trace-dump` (x86-64 Linux build
+  of the pinned commit) on Mesa lavapipe (software Vulkan 1.4): **frame 450 shows the Bink
+  Video logo, frame 900 shows the game's title screen ("PRESS START BUTTON")**, both correct.
+  The images and traces are not committed (they contain the game's copyrighted content).
+- Conclusion: CPU emulation, kernel, file I/O and the guest's GPU command stream are
+  correct on the phone; the game reaches its title screen. The black image comes from the
+  Vulkan GPU backend on the Adreno 840 proprietary driver. The user also reports hearing
+  the game's sound.
+- Next: "Replay on this phone" (Device tab) replays the same capture on the phone with
+  several GPU cvar variants and saves each image, to find which GPU path fails.

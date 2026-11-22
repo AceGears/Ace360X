@@ -92,11 +92,18 @@ fun GpuTraceCard() {
                     TextButton(onClick = { context.startActivity(GpuTrace.shareIntent(context, traces)) }) {
                         Text("Share files")
                     }
-                    TextButton(onClick = {
-                        GpuTrace.delete(context)
-                        traces = emptyList()
-                    }) { Text("Delete") }
                 }
+                Button(onClick = {
+                    context.startActivity(
+                        android.content.Intent(context, com.acegears.ace360x.diag.TraceReplayActivity::class.java),
+                    )
+                }) {
+                    Text("Replay on this phone")
+                }
+                TextButton(onClick = {
+                    GpuTrace.delete(context)
+                    traces = emptyList()
+                }) { Text("Delete captures") }
             }
         }
     }

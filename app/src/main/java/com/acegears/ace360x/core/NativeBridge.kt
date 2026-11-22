@@ -52,6 +52,19 @@ object NativeBridge {
         else -> nativeRunCoreSelfTest()
     }
 
+    /**
+     * Replays a captured GPU frame on this device with the given cvar overrides
+     * (name to TOML literal) and writes the guest output to [png]. Blocking; call
+     * off the main thread, in the :replay process only. Returns "" or an error.
+     */
+    fun replayTrace(trace: String, png: String, cvars: List<Pair<String, String>>): String = when {
+        !hasCore -> "This build does not include the emulation core"
+        !coreInitialised -> "Core not initialised"
+        else -> nativeReplayTrace(
+            trace, png, cvars.map { it.first }.toTypedArray(), cvars.map { it.second }.toTypedArray(),
+        )
+    }
+
     /** Pushes one player's full controller state (XInput ranges). */
     fun setPadState(user: Int, pad: com.acegears.ace360x.emu.PadSnapshot) {
         if (!hasCore) return
@@ -79,6 +92,12 @@ object NativeBridge {
     private external fun nativeHasCore(): Boolean
     private external fun nativeInitCore(apiLevel: Int, context: android.content.Context)
     private external fun nativeRunCoreSelfTest(): String
+    private external fun nativeReplayTrace(
+        trace: String,
+        png: String,
+        keys: Array<String>,
+        values: Array<String>,
+    ): String
     private external fun nativeProbeVulkan(): String
     private external fun nativeSniffFormat(fd: Int): Int
 }

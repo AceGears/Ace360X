@@ -14,6 +14,7 @@
 #if ACE_WITH_XENIA
 #include "android_input_driver.h"
 #include "core_selftest.h"
+#include "trace_replay.h"
 #include "saf_tree_provider.h"
 #endif
 
@@ -61,6 +62,53 @@ Java_com_acegears_ace360x_core_NativeBridge_nativeHasCore(JNIEnv* /*env*/, jobje
   return JNI_TRUE;
 #else
   return JNI_FALSE;
+#endif
+}
+
+// Replays a captured GPU frame on this device (see trace_replay.h). keys/values
+// are cvar names and TOML literal values. Returns "" or an error message.
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_acegears_ace360x_core_NativeBridge_nativeReplayTrace(JNIEnv* env, jobject /*thiz*/,
+                                                              jstring trace, jstring png,
+                                                              jobjectArray keys,
+                                                              jobjectArray values) {
+#if ACE_WITH_XENIA
+  try {
+    auto str = [env](jstring s) {
+      std::string out;
+      if (!s) return out;
+      const char* c = env->GetStringUTFChars(s, nullptr);
+      if (c) {
+        out = c;
+        env->ReleaseStringUTFChars(s, c);
+      }
+      return out;
+    };
+    std::vector<std::pair<std::string, std::string>> cvars;
+    const jsize n = keys ? env->GetArrayLength(keys) : 0;
+    if (!values || env->GetArrayLength(values) != n) {
+      return ToJString(env, "keys/values length mismatch");
+    }
+    for (jsize i = 0; i < n; ++i) {
+      auto k = static_cast<jstring>(env->GetObjectArrayElement(keys, i));
+      auto v = static_cast<jstring>(env->GetObjectArrayElement(values, i));
+      cvars.emplace_back(str(k), str(v));
+      env->DeleteLocalRef(k);
+      env->DeleteLocalRef(v);
+    }
+    return ToJString(env, ace360x::host::ReplayTrace(str(trace), str(png), cvars));
+  } catch (const std::exception& e) {
+    LOGE("ReplayTrace threw: %s", e.what());
+    return ToJString(env, "replay threw an exception (see logcat)");
+  } catch (...) {
+    return ToJString(env, "replay threw an unknown exception");
+  }
+#else
+  (void)trace;
+  (void)png;
+  (void)keys;
+  (void)values;
+  return ToJString(env, "This build does not include the emulation core");
 #endif
 }
 
