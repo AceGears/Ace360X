@@ -180,6 +180,13 @@ class EmulatorActivity : WindowedAppActivity() {
 
         val surfaceView = WindowSurfaceView(this)
         // The game process can't read the main process's DataStore; the theme comes in the Intent.
+        if (intent.getBundleExtra(EXTRA_CVARS)?.getString("trace_gpu_frames") != null) {
+            Toast.makeText(
+                this,
+                "Recording graphics frames at about 15 and 30 seconds. Keep the game running.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
         val theme = ThemeCustomization.decode(intent.getStringExtra(EXTRA_THEME))
         val overlay = ComposeView(this).apply {
             setContent {

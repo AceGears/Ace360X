@@ -67,6 +67,13 @@ object Diagnostics {
             w.appendLine("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             w.appendLine()
 
+            val traces = GpuTrace.traces(context)
+            w.appendLine(
+                "GPU frame capture: armed for next launch=${GpuTrace.isArmed(context)}, " +
+                    "captured files=${traces.size}" +
+                    traces.joinToString("") { " [${it.name} ${it.length() / 1024} KB]" },
+            )
+            w.appendLine()
             w.appendLine("== Recent process exits ==")
             exitReasons(context).forEach { w.appendLine(it) }
             w.appendLine()
