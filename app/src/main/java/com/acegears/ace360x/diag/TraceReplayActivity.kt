@@ -82,7 +82,7 @@ class TraceReplayActivity : ComponentActivity() {
                     .redirectErrorStream(true).start()
                 val lines = p.inputStream.bufferedReader().readLines()
                 p.waitFor()
-                lines.filter { "Swap stats" in it || "Validation Error" in it || " E ace360x-replay" in it }
+                lines.filter { "Swap stats" in it || "Resolve stats" in it || "Ace360X replay" in it || "Validation Error" in it || " E ace360x-replay" in it }
                     .map { it.substringAfter("ace360x-replay: ") }
             }.getOrElse { listOf("could not read log: ${it.message}") }
             runOnUiThread { logNotes.value = notes.joinToString("\n") }
@@ -148,34 +148,21 @@ class TraceReplayActivity : ComponentActivity() {
         private fun without(label: String, features: String) =
             Variant(label, STATS + ("ace_vulkan_disable_features" to "\"$features\""))
 
-        /**
-         * Each variant makes Xenia avoid one group of optional driver features (patch 0017).
-         * All of them render the reference capture correctly on Mesa lavapipe.
-         */
+        /** Checked on Mesa lavapipe: 2 and 4 give a magenta frame, 1 and 3 the title screen. */
         val VARIANTS = listOf(
             Variant("1 Default", STATS),
-            without("2 No geometry shaders", "geometryShader"),
-            without("3 No tessellation shaders", "tessellationShader"),
-            without(
-                "4 No stencil export / sample locations / conditional rendering",
-                "EXT_shader_stencil_export,EXT_sample_locations,EXT_conditional_rendering",
+            Variant(
+                "2 Magenta painted into the game's render target before it is copied out",
+                STATS + ("ace_resolve_debug_clear" to "true"),
             ),
-            without("5 No depth clamp / clip and cull distances", "depthClamp,shaderClipDistance,shaderCullDistance"),
-            without(
-                "6 No float controls / demote",
-                "shaderSignedZeroInfNanPreserveFloat32,shaderDenormFlushToZeroFloat32," +
-                    "shaderRoundingModeRTEFloat32,shaderDemoteToHelperInvocation",
+            Variant(
+                "3 Draws with no culling and no depth/stencil rejection",
+                STATS + ("ace_pipeline_debug_permissive" to "true"),
             ),
-            without(
-                "7 No view swizzle / reinterpretation / scalar layouts",
-                "imageViewFormatSwizzle,imageViewFormatReinterpretation,scalarBlockLayout,uniformBufferStandardLayout",
+            Variant(
+                "4 Like 2, with 8-bit gamma render targets",
+                STATS + ("ace_resolve_debug_clear" to "true") + ("gamma_render_target_as_unorm16" to "false"),
             ),
-            without(
-                "8 No sparse memory / misc",
-                "sampleRateShading,fillModeNonSolid,pointPolygons,triangleFans," +
-                    "shaderSampleRateInterpolationFunctions,sparseBinding,sparseResidencyBuffer",
-            ),
-            Variant("9 Gamma render target as 8-bit", STATS + ("gamma_render_target_as_unorm16" to "false")),
         )
     }
 }

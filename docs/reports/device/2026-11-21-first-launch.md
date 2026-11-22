@@ -145,3 +145,12 @@ menu) and whether there is sound, then quit and share diagnostics.
   in rendering to host render targets, the resolve, or shared memory, not in the final pass.
 - Patch 0017 lets the replay disable groups of optional driver features to find which
   fallback path, if any, produces pixels on the phone.
+
+## Bisect step 2 result (2026-11-22, build 98bfdf9)
+
+- All nine feature-group variants (no geometry shaders, no tessellation, no stencil export /
+  sample locations / conditional rendering, no depth clamp / clip-cull distances, no float
+  controls, no view swizzle / scalar layouts, no sparse memory, 8-bit gamma targets): readback
+  **0 of 60,433** on the phone every time. Not caused by one of these optional features.
+- Patch 0018: magenta painted into the render target before each resolve, and permissive draw
+  pipelines, to separate "draws produce nothing" from "resolve/readback loses it".

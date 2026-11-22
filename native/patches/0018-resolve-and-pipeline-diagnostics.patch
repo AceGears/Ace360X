@@ -1,0 +1,93 @@
+diff --git a/src/xenia/gpu/vulkan/vulkan_command_processor.cc b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+index fbdc6a3..3fca637 100644
+--- a/src/xenia/gpu/vulkan/vulkan_command_processor.cc
++++ b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+@@ -45,6 +45,11 @@ DEFINE_bool(ace_swap_stats, false,
+             "Log how much of the guest front buffer in guest memory is non-zero "
+             "at each swap (meaningful with readback_resolve=full).",
+             "GPU");
++DEFINE_bool(ace_resolve_debug_clear, false,
++            "Clear color render target 0 of the last used framebuffer to magenta "
++            "right before each resolve, to test the resolve path separately from "
++            "the guest's draws.",
++            "GPU");
+ DEFINE_bool(ace_swap_debug_clear, false,
+             "Overwrite the guest output with magenta after the gamma pass, to "
+             "check the path from the guest output image to the screen/capture.",
+@@ -3256,6 +3261,30 @@ bool VulkanCommandProcessor::IssueCopy() {
+     return false;
+   }
+ 
++  if (cvars::ace_resolve_debug_clear &&
++      render_target_cache_->last_update_render_pass() != VK_NULL_HANDLE &&
++      render_target_cache_->last_update_framebuffer()) {
++    const VulkanRenderTargetCache::Framebuffer* debug_framebuffer =
++        render_target_cache_->last_update_framebuffer();
++    SubmitBarriersAndEnterRenderTargetCacheRenderPass(
++        render_target_cache_->last_update_render_pass(), debug_framebuffer);
++    VkClearAttachment debug_clear_attachment;
++    debug_clear_attachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
++    debug_clear_attachment.colorAttachment = 0;
++    debug_clear_attachment.clearValue.color.float32[0] = 1.0f;
++    debug_clear_attachment.clearValue.color.float32[1] = 0.0f;
++    debug_clear_attachment.clearValue.color.float32[2] = 1.0f;
++    debug_clear_attachment.clearValue.color.float32[3] = 1.0f;
++    VkClearRect debug_clear_rect;
++    debug_clear_rect.rect.offset.x = 0;
++    debug_clear_rect.rect.offset.y = 0;
++    debug_clear_rect.rect.extent = debug_framebuffer->host_extent;
++    debug_clear_rect.baseArrayLayer = 0;
++    debug_clear_rect.layerCount = 1;
++    deferred_command_buffer_.CmdVkClearAttachments(1, &debug_clear_attachment,
++                                                   1, &debug_clear_rect);
++  }
++
+   uint32_t written_address, written_length;
+   reg::RB_COPY_DEST_INFO copy_dest_info;
+   bool is_scaled;
+@@ -3265,6 +3294,12 @@ bool VulkanCommandProcessor::IssueCopy() {
+     return false;
+   }
+ 
++  if (cvars::ace_swap_stats) {
++    XELOGI("Resolve stats: wrote {:08X} length {} (dest format {}, scaled {})",
++           written_address, written_length,
++           uint32_t(copy_dest_info.copy_dest_format), is_scaled);
++  }
++
+   // CPU readback resolve path (if not disabled).
+   ReadbackResolveMode readback_mode = GetReadbackResolveMode();
+   if (readback_mode == ReadbackResolveMode::kDisabled || !written_length) {
+diff --git a/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc b/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc
+index dd12f6a..11a19ac 100644
+--- a/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc
++++ b/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc
+@@ -62,6 +62,13 @@ DEFINE_int32(
+ 
+ DECLARE_bool(spirv_disable_rounding_mode_rte);
+ 
++// Ace360X (patch 0018): device graphics diagnostics, off by default.
++DEFINE_bool(ace_pipeline_debug_permissive, false,
++            "Create guest draw pipelines without face culling and with depth "
++            "and stencil tests always passing, to check whether draws are "
++            "rejected by those tests on a driver.",
++            "GPU");
++
+ namespace xe {
+ namespace gpu {
+ namespace vulkan {
+@@ -1495,6 +1502,14 @@ bool VulkanPipelineCache::GetCurrentStateDescription(
+     }
+   }
+ 
++  if (cvars::ace_pipeline_debug_permissive) {
++    // Diagnostics: no culling, no depth/stencil rejection.
++    description_out.cull_front = 0;
++    description_out.cull_back = 0;
++    description_out.depth_compare_op = xenos::CompareFunction::kAlways;
++    description_out.stencil_test_enable = 0;
++  }
++
+   return true;
+ }
+ 
