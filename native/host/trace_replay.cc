@@ -30,9 +30,13 @@ std::string SetCvar(const std::string& name, const std::string& toml_value) {
   if (!cvar::ConfigVars) return "no cvars registered";
   auto it = cvar::ConfigVars->find(name);
   if (it == cvar::ConfigVars->end()) return "unknown cvar " + name;
-  toml::parse_result parsed = toml::parse(name + " = " + toml_value);
-  if (!parsed) return "bad value for " + name;
-  const toml::table& table = parsed.table();
+  // Upstream builds toml++ with exceptions, so parse() returns a table or throws.
+  toml::table table;
+  try {
+    table = toml::parse(name + " = " + toml_value);
+  } catch (const toml::parse_error&) {
+    return "bad value for " + name;
+  }
   it->second->LoadConfigValue(table.get(name));
   g_overridden.insert(name);
   return "";
