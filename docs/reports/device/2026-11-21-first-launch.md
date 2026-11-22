@@ -60,3 +60,14 @@ menu) and whether there is sound, then quit and share diagnostics.
   waited on something with a timeout.
 - Still unknown: whether any frame reached the screen. Xenia doesn't log presented frames,
   so patch 0013 adds a "GPU activity" line (guest swaps and draw calls).
+
+## Third run (21:32:30 – 21:32:36, build 8b25be4, 5 s)
+
+- With patch 0013: **guest swap #1 at +1.0 s, 1280×720 front buffer, 36 draw calls**. The game
+  does produce frames; the user saw a black screen (with the on-screen controls) in all runs.
+  The session ended before the 5 s report interval, so the swap rate is still unknown.
+- The "ended unexpectedly" banner still appeared. Cause from the log: on Quit, the Library
+  resumes in the main process ~0.5 s before the game process reaches `onDestroy`, so it saw
+  the session marker. Fixed by clearing the marker on Quit and ignoring it while `:emu` is
+  alive.
+- Patch 0014 logs presenter results so the next run shows whether frames reach the screen.

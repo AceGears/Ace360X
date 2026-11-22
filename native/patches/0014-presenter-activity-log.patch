@@ -1,0 +1,44 @@
+diff --git a/src/xenia/ui/presenter.cc b/src/xenia/ui/presenter.cc
+index 36039ab..11d9217 100644
+--- a/src/xenia/ui/presenter.cc
++++ b/src/xenia/ui/presenter.cc
+@@ -10,6 +10,7 @@
+ #include "xenia/ui/presenter.h"
+ 
+ #include "xenia/base/assert.h"
++#include "xenia/base/clock.h"
+ #include "xenia/base/cvar.h"
+ #include "xenia/base/logging.h"
+ #include "xenia/base/platform.h"
+@@ -1293,6 +1294,31 @@ Presenter::PaintResult Presenter::PaintAndPresent(bool execute_ui_drawers) {
+   assert_true(surface_paint_connection_state_ ==
+               SurfacePaintConnectionState::kConnectedPaintable);
+   PaintResult result = PaintAndPresentImpl(execute_ui_drawers);
++  {
++    // Ace360X (patch 0014): presentation summary for device diagnostics, at
++    // most every 5 s while painting happens.
++    static uint64_t counts[6] = {};
++    static uint64_t last_report_ms = 0;
++    static uint64_t total = 0;
++    ++total;
++    size_t index = size_t(result);
++    if (index < 6) {
++      ++counts[index];
++    }
++    uint64_t now_ms = xe::Clock::QueryHostUptimeMillis();
++    if (total == 1 || now_ms - last_report_ms >= 5000) {
++      XELOGI(
++          "Presenter: paint #{}; since last report presented {}, suboptimal "
++          "{}, not presented {}, outdated {}, GPU lost {}; guest output "
++          "active: {}",
++          total, counts[0], counts[1], counts[2], counts[3],
++          counts[4] + counts[5], guest_output_active_last_refresh_);
++      for (uint64_t& c : counts) {
++        c = 0;
++      }
++      last_report_ms = now_ms;
++    }
++  }
+   switch (result) {
+     case PaintResult::kPresented:
+       surface_paint_connection_was_optimal_at_successful_paint_ = true;
