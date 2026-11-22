@@ -48,8 +48,8 @@ menu) and whether there is sound, then quit and share diagnostics.
 
 ## Second run (21:09:27 – 21:12:51, build 51afa68, 3 min 24 s)
 
-- No crash. Normal quit; the false "ended unexpectedly" banner did not appear (fix confirmed:
-  the app showed no banner per the report's exit list, EXIT_SELF status 0).
+- No crash. Normal quit through the dialog (EXIT_SELF, status 0). Whether the "ended
+  unexpectedly" banner still appeared isn't visible in the report; asked the user.
 - The game got further: at +6.5 s it loaded its second module `AI2C.dll` (AI library) from the
   disc, created more threads and read many files until +19.6 s.
 - Guest-side warnings, also common on desktop Xenia: unimplemented kernel export
