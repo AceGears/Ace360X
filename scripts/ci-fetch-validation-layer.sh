@@ -16,7 +16,12 @@ if [ -z "$asset" ]; then
 fi
 echo "Using $TAG / $asset"
 gh release download "$TAG" --repo "$REPO" --pattern "$asset" --dir "$work"
-unzip -q "$work/$asset" -d "$work/x"
+mkdir -p "$work/x"
+case "$asset" in
+  *.zip) unzip -q "$work/$asset" -d "$work/x" ;;
+  *.tar.gz|*.tgz) tar -xzf "$work/$asset" -C "$work/x" ;;
+  *) echo "Unknown archive type: $asset"; exit 1 ;;
+esac
 so=$(find "$work/x" -path "*arm64-v8a*" -name "libVkLayer_khronos_validation.so" | head -1)
 [ -n "$so" ] || { echo "arm64 layer not found in $asset"; find "$work/x" | head -40; exit 1; }
 mkdir -p "$DEST"
