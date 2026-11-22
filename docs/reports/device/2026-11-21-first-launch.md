@@ -45,3 +45,18 @@ Xenia too. "Shader compilation failed" lines in the log are from Android's own U
 ## Next test requested from the user
 Leave the game running for at least 60 seconds, note what the screen shows (black, logos,
 menu) and whether there is sound, then quit and share diagnostics.
+
+## Second run (21:09:27 – 21:12:51, build 51afa68, 3 min 24 s)
+
+- No crash. Normal quit; the false "ended unexpectedly" banner did not appear (fix confirmed:
+  the app showed no banner per the report's exit list, EXIT_SELF status 0).
+- The game got further: at +6.5 s it loaded its second module `AI2C.dll` (AI library) from the
+  disc, created more threads and read many files until +19.6 s.
+- Guest-side warnings, also common on desktop Xenia: unimplemented kernel export
+  `IoDismountVolumeByFileHandle` (×2), `BaseHeap::Release failed because address is not a
+  region start` (×6), `ResolvePath(Menu\) failed`.
+- From +19.6 s the log is silent, except that at +79.6 s (exactly 60 s later) two threads
+  are created and the log goes silent again until the user quit. A 60 s gap suggests the game
+  waited on something with a timeout.
+- Still unknown: whether any frame reached the screen. Xenia doesn't log presented frames,
+  so patch 0013 adds a "GPU activity" line (guest swaps and draw calls).

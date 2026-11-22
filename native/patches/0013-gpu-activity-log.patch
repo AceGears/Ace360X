@@ -1,0 +1,77 @@
+diff --git a/src/xenia/gpu/d3d12/d3d12_command_processor.cc b/src/xenia/gpu/d3d12/d3d12_command_processor.cc
+index 82076bc..3679884 100644
+--- a/src/xenia/gpu/d3d12/d3d12_command_processor.cc
++++ b/src/xenia/gpu/d3d12/d3d12_command_processor.cc
+@@ -10,6 +10,7 @@
+ #include "xenia/gpu/d3d12/d3d12_command_processor.h"
+ #include <cstring>
+ #include "xenia/apu/audio_system.h"
++#include "xenia/base/clock.h"
+ #include "xenia/base/assert.h"
+ #include "xenia/base/byte_order.h"
+ #include "xenia/base/cvar.h"
+diff --git a/src/xenia/gpu/pm4_command_processor_implement.h b/src/xenia/gpu/pm4_command_processor_implement.h
+index 1d9b7d9..5a88423 100644
+--- a/src/xenia/gpu/pm4_command_processor_implement.h
++++ b/src/xenia/gpu/pm4_command_processor_implement.h
+@@ -5,6 +5,12 @@
+ #endif
+ 
+ using namespace xe::gpu::xenos;
++
++// Ace360X: guest GPU activity summary for device diagnostics (patch 0013).
++// Logged from the command processor thread at most every 5 s, and only when the
++// guest swaps; no "GPU activity" lines in a log mean the guest never swapped.
++static uint64_t ace_gpu_draws_since_report_ = 0;
++static uint64_t ace_gpu_draws_total_ = 0;
+ void COMMAND_PROCESSOR::ExecuteIndirectBuffer(uint32_t ptr,
+                                               uint32_t count) XE_RESTRICT {
+   SCOPE_profile_cpu_f("gpu");
+@@ -686,6 +692,26 @@ bool COMMAND_PROCESSOR::ExecutePacketType3_XE_SWAP(uint32_t packet,
+                                frontbuffer_height);
+ 
+   ++counter_;
++
++  {
++    static uint64_t swaps_total = 0;
++    static uint64_t swaps_since_report = 0;
++    static uint64_t last_report_ms = 0;
++    ++swaps_total;
++    ++swaps_since_report;
++    uint64_t now_ms = xe::Clock::QueryHostUptimeMillis();
++    if (swaps_total == 1 || now_ms - last_report_ms >= 5000) {
++      XELOGI(
++          "GPU activity: guest swap #{} ({}x{} front buffer); {} swaps and {} "
++          "draws since last report, {} draws total",
++          swaps_total, frontbuffer_width, frontbuffer_height,
++          swaps_since_report, ace_gpu_draws_since_report_,
++          ace_gpu_draws_total_);
++      swaps_since_report = 0;
++      ace_gpu_draws_since_report_ = 0;
++      last_report_ms = now_ms;
++    }
++  }
+   return true;
+ }
+ 
+@@ -1119,6 +1145,8 @@ bool COMMAND_PROCESSOR::ExecutePacketType3Draw(
+           xenos::IsMajorModeExplicit(vgt_draw_initiator.major_mode,
+                                      vgt_draw_initiator.prim_type));
+       viz_draw_predicate_ = {};
++      ++ace_gpu_draws_since_report_;
++      ++ace_gpu_draws_total_;
+       if (!draw_succeeded) {
+         XELOGE("{}({}, {}, {}): Failed in backend", opcode_name,
+                vgt_draw_initiator.num_indices,
+diff --git a/src/xenia/gpu/vulkan/vulkan_command_processor.cc b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+index 0cf2eb6..15f9875 100644
+--- a/src/xenia/gpu/vulkan/vulkan_command_processor.cc
++++ b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+@@ -13,6 +13,7 @@
+ #include <cstring>
+ 
+ #include "xenia/apu/audio_system.h"
++#include "xenia/base/clock.h"
+ #include "xenia/base/assert.h"
+ #include "xenia/base/byte_order.h"
+ #include "xenia/base/logging.h"
