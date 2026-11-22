@@ -140,10 +140,6 @@ class TraceReplayActivity : ComponentActivity() {
             Variant("5 No 3D-to-2D texture", listOf("gpu_3d_to_2d_texture" to "false")),
             Variant("6 Depth float24 in pixel shader", listOf("depth_float24_convert_in_pixel_shader" to "true")),
             Variant(
-                "8 Default + Vulkan validation (reports errors to the log; slow)",
-                listOf("vulkan_validation" to "true"),
-            ),
-            Variant(
                 "7 All of the above",
                 listOf(
                     "vulkan_sparse_shared_memory" to "false",
