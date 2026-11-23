@@ -232,3 +232,9 @@
   Added a measurement instead of guessing: in-game readout of guest-swap FPS, 1 % low,
   frame-time stdev and input→guest delivery time (patch 0023, `emu/PerfStats.kt`, JVM tests).
   **Not yet run on a device; no performance numbers exist.**
+- Second title tried by the tester (55530825): menu correct on device (replay matches
+  lavapipe); dojo gameplay has black surfaces. The log is flooded with upstream's
+  "Invalid upload range" rejection. Hypothesis, untested: those rejected uploads are the
+  missing surfaces. Added the upstream escape hatch as a per-game Experimental option to
+  test it. Frame captures can't reproduce this (the trace player commits all memory).
+  The performance readout has not been reported on yet.

@@ -18,6 +18,8 @@ data class GameOverrides(
     val keepAspectRatio: Boolean? = null,
     val mute: Boolean? = null,
     val guestVsync: Boolean? = null,
+    /** Experimental; see [EmulatorSettings.allowUnmappedGpuReads]. Global value is always off. */
+    val allowUnmappedGpuReads: Boolean? = null,
 ) {
     val isEmpty: Boolean get() = this == GameOverrides()
 
@@ -28,6 +30,7 @@ data class GameOverrides(
         keepAspectRatio = keepAspectRatio ?: global.keepAspectRatio,
         mute = mute ?: global.mute,
         guestVsync = guestVsync ?: global.guestVsync,
+        allowUnmappedGpuReads = allowUnmappedGpuReads ?: false,
     )
 
     /** One "key=value" per line after a version line; only overridden keys are written. */
@@ -39,6 +42,7 @@ data class GameOverrides(
         keepAspectRatio?.let { append("aspect=").append(it).append('\n') }
         mute?.let { append("mute=").append(it).append('\n') }
         guestVsync?.let { append("vsync=").append(it).append('\n') }
+        allowUnmappedGpuReads?.let { append("gpuunmapped=").append(it).append('\n') }
     }
 
     companion object {
@@ -61,6 +65,7 @@ data class GameOverrides(
                 keepAspectRatio = kv["aspect"]?.toBooleanStrictOrNull(),
                 mute = kv["mute"]?.toBooleanStrictOrNull(),
                 guestVsync = kv["vsync"]?.toBooleanStrictOrNull(),
+                allowUnmappedGpuReads = kv["gpuunmapped"]?.toBooleanStrictOrNull(),
             )
         }
     }

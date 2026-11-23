@@ -215,7 +215,7 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   (`ThemeTest`). Visual review screenshots (Phase 9) need a device.
 - Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
   sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).
-- Compatibility DB: `compat/compat.json` has one entry (555307E5, In-game); other titles Untested;
+- Compatibility DB: `compat/compat.json` has two entries (555307E5, 55530825: In-game); other titles Untested;
   entries need evidence and are validated in CI (`scripts/validate-compat.py`). The app
   does not read it yet (no title-ID extraction).
 - Verified on device (2026-11-21, Samsung SM8850/Adreno 840, Android 17): app runs; a retail
@@ -230,6 +230,9 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   guest-swap FPS, 1 % low, frame-time stdev, input→guest delivery time (patch 0023,
   `emu/PerfStats.kt`). Emulation speed % is not measured. Tester reports slight input lag
   with touch controls (2026-11-23); cause not yet established.
+- Implemented (unverified on device): per-game Experimental option "Missing graphics fix"
+  (upstream cvar `gpu_allow_invalid_upload_range`), added to test whether the black surfaces
+  in 55530825 come from the "Invalid upload range" rejections seen in its log.
 - Next: get numbers from the readout on device (none exist yet), then act on them; presenter stops
   painting after swapchain recreation; confirm the "ended unexpectedly" banner fix; offer
   patches 0010–0012 and 0021 upstream.

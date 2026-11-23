@@ -1,0 +1,21 @@
+Title: Naruto: The Broken Bond, title ID 55530825
+Device: Samsung SM-S948U1 (Snapdragon SM8850, Adreno 840), Android 17
+Driver: Qualcomm proprietary Vulkan driver, build 07/01/26, API 1.4.295
+Build: 3d216e0 (debug APK from CI, patches 0001-0023)
+Date: 2026-11-23
+Tester: repository owner (AceGears), reported in the development session
+
+Observed:
+1. On-phone replay of the tester's frame-900 capture: main menu ("Fight mode": Tournament,
+   VS mode, Dojo, Options) drawn correctly; readback 57,834 of 60,433 sampled bytes non-zero
+   (Mesa lavapipe reference for the same capture: 57,819). With patch 0021 switched off the
+   same replay is black (101 of 60,433).
+2. Screenshot of the dojo tutorial during play: scene, characters and prompts are drawn, but
+   parts are black that should not be (the floor, one character's body, another's head).
+3. Diagnostics 20261123-145407: the log tail is 2,891 lines of
+   "Vulkan shared memory: Invalid upload range ..." — the emulator refusing to upload
+   graphics data from guest pages its bookkeeping marks as not readable. Suspected cause of
+   the black parts; not confirmed.
+
+Not measured or checked: frame rate, audio, stability, anything past the dojo.
+Screenshots are not stored here because they show game artwork.

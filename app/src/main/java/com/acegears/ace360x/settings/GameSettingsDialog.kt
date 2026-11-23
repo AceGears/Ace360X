@@ -71,6 +71,19 @@ fun GameSettingsDialog(
                     "Guest VSync", if (global.guestVsync) "On" else "Off", o.guestVsync,
                     listOf(true to "On", false to "Off"),
                 ) { o = o.copy(guestVsync = it) }
+                Choice(
+                    "Missing graphics fix (Experimental)", "Off", o.allowUnmappedGpuReads,
+                    listOf(false to "Off", true to "On"),
+                ) { o = o.copy(allowUnmappedGpuReads = it) }
+                if (o.allowUnmappedGpuReads == true) {
+                    Text(
+                        "Experimental: draws things the emulator would otherwise skip because their " +
+                            "data sits in memory it considers unreadable. May fix black or missing " +
+                            "parts in some games; may also crash the game.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
                 if (o.guestVsync == false) {
                     Text(
                         "With guest VSync off, this game may run too fast.",

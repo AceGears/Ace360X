@@ -198,3 +198,21 @@ class PerfStatsTest {
         org.junit.Assert.assertNull(com.acegears.ace360x.emu.PerfStats.summarize(longArrayOf(1), ArrayDeque()).avgFps)
     }
 }
+
+class UnmappedGpuReadsTest {
+    @org.junit.Test
+    fun offByDefaultAndOnlyPerGame() {
+        val global = EmulatorSettings()
+        org.junit.Assert.assertEquals(false, global.toCvars()["gpu_allow_invalid_upload_range"])
+        val on = com.acegears.ace360x.settings.GameOverrides(allowUnmappedGpuReads = true)
+        org.junit.Assert.assertEquals(true, on.applyTo(global).toCvars()["gpu_allow_invalid_upload_range"])
+        // A global value can't leak in: without the override it is always off.
+        org.junit.Assert.assertEquals(
+            false,
+            com.acegears.ace360x.settings.GameOverrides().applyTo(global.copy(allowUnmappedGpuReads = true))
+                .allowUnmappedGpuReads,
+        )
+        val parsed = com.acegears.ace360x.settings.GameOverrides.parse(on.serialize())
+        org.junit.Assert.assertEquals(on, parsed)
+    }
+}

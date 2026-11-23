@@ -19,6 +19,12 @@ data class EmulatorSettings(
      * it off can make games run too fast. Advanced, off-by-warning.
      */
     val guestVsync: Boolean = true,
+    /**
+     * gpu_allow_invalid_upload_range (upstream cvar): let the game's graphics data be read
+     * from memory pages Xenia's bookkeeping marks as not readable, instead of skipping the
+     * draw. Experimental, per game only (CLAUDE.md §8); never stored as a global setting.
+     */
+    val allowUnmappedGpuReads: Boolean = false,
     /** Show measured FPS and input delivery time over the game (our overlay, no cvar). */
     val showPerfStats: Boolean = false,
     val touchOpacity: Float = 0.75f,
@@ -80,6 +86,7 @@ data class EmulatorSettings(
         "present_letterbox" to keepAspectRatio,
         "mute" to mute,
         "vsync" to guestVsync,
+        "gpu_allow_invalid_upload_range" to allowUnmappedGpuReads,
     )
 
     companion object {
