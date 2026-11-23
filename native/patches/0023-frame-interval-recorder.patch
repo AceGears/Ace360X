@@ -73,6 +73,18 @@ index 0000000..a1b1015
 +}  // namespace xe
 +
 +#endif  // XENIA_GPU_ACE_FRAME_STATS_H_
+diff --git a/src/xenia/gpu/command_processor.cc b/src/xenia/gpu/command_processor.cc
+index f93d151..0f68f9e 100644
+--- a/src/xenia/gpu/command_processor.cc
++++ b/src/xenia/gpu/command_processor.cc
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include "xenia/gpu/command_processor.h"
++#include "xenia/gpu/ace_frame_stats.h"
+ 
+ #include <algorithm>
+ 
 diff --git a/src/xenia/gpu/d3d12/d3d12_command_processor.cc b/src/xenia/gpu/d3d12/d3d12_command_processor.cc
 index 3679884..f92d5e0 100644
 --- a/src/xenia/gpu/d3d12/d3d12_command_processor.cc
