@@ -145,23 +145,14 @@ class TraceReplayActivity : ComponentActivity() {
     companion object {
         /** Variants to compare; each changes one GPU path that differs between drivers. */
         private val STATS = listOf("ace_swap_stats" to "true", "readback_resolve" to "\"full\"")
-        private val NO_KILL = "ace_ps_debug_no_kill" to "true"
-        private val NO_BLEND = "ace_pipeline_debug_no_blend" to "true"
-
         /**
-         * Pixel-shader stage split (patch 0020). Mesa lavapipe reference with the frame-900
-         * capture, non-zero bytes of 60,433: 1 → 29,881; 2 → 44,740; 3 → 8,526; 4 → 44,576;
-         * 5 → 44,821; 6 → 44,821; 7 → 59,761; 8 → 59,680.
+         * Patch 0021 (gl_SampleMask initialised in every translated pixel shader). Mesa
+         * lavapipe gives the same picture for both (frame 450: 59,619 of 60,433 non-zero bytes;
+         * frame 900: 44,576). On the Adreno 840 upstream behaviour (2) gave 0.
          */
         val VARIANTS = listOf(
-            Variant("1 Game shader runs, then writes magenta", STATS + ("ace_ps_debug_output" to "1")),
-            Variant("2 Game shader runs, then writes its first input as colour", STATS + ("ace_ps_debug_output" to "2")),
-            Variant("3 Game colour with alpha forced to 1", STATS + ("ace_ps_debug_output" to "3")),
-            Variant("4 Pixels are never discarded", STATS + NO_KILL),
-            Variant("5 Textures read as white", STATS + ("ace_ps_debug_white_textures" to "true")),
-            Variant("6 Like 1, no discard, no blending", STATS + ("ace_ps_debug_output" to "1") + NO_KILL + NO_BLEND),
-            Variant("7 Like 5, no discard, no blending", STATS + ("ace_ps_debug_white_textures" to "true") + NO_KILL + NO_BLEND),
-            Variant("8 Like 2, no discard, no blending", STATS + ("ace_ps_debug_output" to "2") + NO_KILL + NO_BLEND),
+            Variant("1 Default (with the sample-mask fix)", STATS),
+            Variant("2 Fix switched off, for comparison", STATS + ("ace_ps_init_sample_mask" to "false")),
         )
     }
 }

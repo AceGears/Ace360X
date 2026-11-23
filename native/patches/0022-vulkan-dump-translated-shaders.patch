@@ -1,0 +1,15 @@
+diff --git a/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc b/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc
+index 8d6ba91..f090f9d 100644
+--- a/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc
++++ b/src/xenia/gpu/vulkan/vulkan_pipeline_cache.cc
+@@ -1046,6 +1046,10 @@ bool VulkanPipelineCache::TranslateAnalyzedShader(
+   if (translation.GetOrCreateShaderModule() == VK_NULL_HANDLE) {
+     return false;
+   }
++  // Ace360X (patch 0021): dump translated SPIR-V like the D3D12 backend does.
++  if (!cvars::dump_shaders.empty()) {
++    translation.Dump(cvars::dump_shaders, "vk");
++  }
+ 
+   // TODO(Triang3l): Log that the shader has been successfully translated in
+   // common code.

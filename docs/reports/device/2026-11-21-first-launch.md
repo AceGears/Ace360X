@@ -182,3 +182,16 @@ menu) and whether there is sound, then quit and share diagnostics.
   interpolators, textures, constants), and blending/write masks alone do not explain it.
 - Patch 0020 splits the pixel stage (output override after guest code, no discard, white
   textures). Not yet run on the phone.
+
+## Bisect step 5 result (2026-11-23, build e457e0a)
+
+- All 8 pixel-stage variants: 0 of 60,433 on the phone, including "translated shader ends by
+  writing magenta, no discard, no blending" (lavapipe: 44,821). A hand-written constant
+  shader in the same pipelines worked in step 4. So translated pixel shaders produce no
+  pixels whatever their body does: the cause is in what every translated shader declares.
+- Dumped the translated SPIR-V (patch 0022) and compared with the hand-written shader:
+  translated shaders declare the `gl_SampleMask` output; 11 of the 13 pixel shaders in the
+  captures never write it (alpha-to-coverage code is skipped with early fragment tests).
+  Undefined by the Vulkan spec; hypothesis: the Adreno driver uses zero coverage.
+- Patch 0021 writes full coverage at the start of every such shader. Lavapipe output
+  unchanged. **Not yet confirmed on the phone.**

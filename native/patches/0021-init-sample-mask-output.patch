@@ -1,0 +1,40 @@
+diff --git a/src/xenia/gpu/spirv_shader_translator.cc b/src/xenia/gpu/spirv_shader_translator.cc
+index 103f679..052d199 100644
+--- a/src/xenia/gpu/spirv_shader_translator.cc
++++ b/src/xenia/gpu/spirv_shader_translator.cc
+@@ -37,6 +37,11 @@ DEFINE_int32(ace_ps_debug_output, 0,
+              "magenta, 2 = fract(abs(interpolator 0.xy)) with blue 0.25 and "
+              "alpha 1, 3 = guest color with alpha forced to 1.",
+              "GPU");
++DEFINE_bool(ace_ps_init_sample_mask, true,
++            "Write full coverage to gl_SampleMask at the start of every "
++            "translated pixel shader that declares it (patch 0021). Off "
++            "restores upstream behaviour, for comparison only.",
++            "GPU");
+ DEFINE_bool(ace_ps_debug_no_kill, false,
+             "Diagnostics: translated pixel shaders never discard pixels "
+             "(guest kill instructions and the alpha test).",
+@@ -2560,6 +2565,23 @@ void SpirvShaderTranslator::StartFragmentShaderBeforeMain() {
+ }
+ 
+ void SpirvShaderTranslator::StartFragmentShaderInMain() {
++  // Ace360X (patch 0021): gl_SampleMask is declared for every non-FSI color
++  // shader, but was written only by the alpha-to-coverage code, which is
++  // skipped with early fragment tests or when color target 0 isn't written.
++  // An output that is declared but not written is undefined in Vulkan; the
++  // Qualcomm Adreno 840 driver treats it as zero coverage and drops every
++  // fragment. Start with full coverage on all paths.
++  if (output_fragment_sample_mask_ != spv::NoResult &&
++      cvars::ace_ps_init_sample_mask) {
++    id_vector_temp_.clear();
++    id_vector_temp_.push_back(builder_->makeIntConstant(0));
++    builder_->createStore(
++        builder_->makeIntConstant(-1),
++        builder_->createAccessChain(spv::StorageClassOutput,
++                                    output_fragment_sample_mask_,
++                                    id_vector_temp_));
++  }
++
+   // TODO(Triang3l): With sample shading (for depth format conversion) only
+   // for the bottom-right sample (unlike in Direct3D, the sample mask input
+   // doesn't include covered samples of the primitive that correspond to other
