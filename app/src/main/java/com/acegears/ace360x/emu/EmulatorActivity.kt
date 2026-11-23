@@ -61,6 +61,7 @@ class EmulatorActivity : WindowedAppActivity() {
         private const val EXTRA_STATS_KEY = "com.acegears.ace360x.STATS_KEY"
 
         private const val EXTRA_TOUCH_OPACITY = "com.acegears.ace360x.TOUCH_OPACITY"
+        const val LAST_LAUNCH_FILE = "last-launch.txt"
         private const val EXTRA_PERF_STATS = "com.acegears.ace360x.PERF_STATS"
         private const val EXTRA_TOUCH_SCALE = "com.acegears.ace360x.TOUCH_SCALE"
         private const val EXTRA_TOUCH_DEFAULT = "com.acegears.ace360x.TOUCH_DEFAULT"
@@ -80,6 +81,13 @@ class EmulatorActivity : WindowedAppActivity() {
             gpuTraceDir: java.io.File? = null,
         ): Intent {
             val storage = File(context.filesDir, "xenia").apply { mkdirs() }
+            // Record what this launch was started with, for the diagnostics report. Options
+            // only; the game's path is not written.
+            runCatching {
+                File(context.filesDir, LAST_LAUNCH_FILE).writeText(
+                    "$displayName: " + settings.toCvars().entries.joinToString(", ") { "${it.key}=${it.value}" },
+                )
+            }
             val cvars = Bundle().apply {
                 // Path cvars are read with Bundle.getString by Xenia (cvar_android.cc).
                 putString("target", target)

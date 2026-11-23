@@ -67,6 +67,10 @@ object Diagnostics {
             w.appendLine("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             w.appendLine()
 
+            val lastLaunch = runCatching {
+                java.io.File(context.filesDir, com.acegears.ace360x.emu.EmulatorActivity.LAST_LAUNCH_FILE).readText()
+            }.getOrNull()
+            w.appendLine("Last game start: ${lastLaunch ?: "none recorded"}")
             val traces = GpuTrace.traces(context)
             w.appendLine(
                 "GPU frame capture: armed for next launch=${GpuTrace.isArmed(context)}, " +

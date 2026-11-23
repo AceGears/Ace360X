@@ -1,0 +1,24 @@
+diff --git a/src/xenia/gpu/vulkan/vulkan_shared_memory.cc b/src/xenia/gpu/vulkan/vulkan_shared_memory.cc
+index fe8dc64..cd50dde 100644
+--- a/src/xenia/gpu/vulkan/vulkan_shared_memory.cc
++++ b/src/xenia/gpu/vulkan/vulkan_shared_memory.cc
+@@ -425,9 +425,16 @@ bool VulkanSharedMemory::UploadRanges(
+                                                        range_end_addr);
+       if (start_access == xe::memory::PageAccess::kNoAccess ||
+           end_access == xe::memory::PageAccess::kNoAccess) {
+-        XELOGE(
+-            "Vulkan shared memory: Invalid upload range {:08X} length {:08X}",
+-            upload_range_start, upload_range_length);
++        // Ace360X (patch 0024): some titles hit this thousands of times a
++        // second; logging each one floods the log and costs frame time.
++        static uint64_t invalid_upload_count = 0;
++        ++invalid_upload_count;
++        if (invalid_upload_count <= 8 || !(invalid_upload_count & 0xFFF)) {
++          XELOGE(
++              "Vulkan shared memory: Invalid upload range {:08X} length {:08X} "
++              "(pages; rejected upload #{}, further ones logged every 4096)",
++              upload_range_start, upload_range_length, invalid_upload_count);
++        }
+         successful = false;
+         break;
+       }
