@@ -154,3 +154,20 @@ menu) and whether there is sound, then quit and share diagnostics.
   **0 of 60,433** on the phone every time. Not caused by one of these optional features.
 - Patch 0018: magenta painted into the render target before each resolve, and permissive draw
   pipelines, to separate "draws produce nothing" from "resolve/readback loses it".
+
+## Bisect step 3 result (2026-11-22, build 77ef5fa)
+
+- Variants 2 and 4 (magenta painted into the render target before each resolve): fully
+  magenta image on the phone, readback **44,821 of 60,433** bytes non-zero, average 189 —
+  identical to lavapipe. Resolve log lines identical too (7 resolves, last to 1F303000,
+  length 3,768,320, format 6).
+- Variants 1 and 3 (default; permissive pipelines): 0 of 60,433.
+- So host render targets, resolve, shared memory, readback, front-buffer texture load, gamma
+  pass and capture work on the Adreno 840. The guest's draw calls leave no pixels, and that
+  is not due to culling or depth/stencil rejection.
+- Open: vertex stage / rasterization (vertex fetch from the shared-memory buffer, system
+  constants, viewport/scissor) versus pixel stage (translated pixel shaders, texture
+  sampling, alpha test, blending, write masks).
+- Patch 0019: constant-magenta pixel shader substitute and blend-off pipelines to split
+  those two. Lavapipe reference values are in `TraceReplayActivity.VARIANTS`. Not yet run on
+  the phone.

@@ -145,23 +145,24 @@ class TraceReplayActivity : ComponentActivity() {
     companion object {
         /** Variants to compare; each changes one GPU path that differs between drivers. */
         private val STATS = listOf("ace_swap_stats" to "true", "readback_resolve" to "\"full\"")
-        private fun without(label: String, features: String) =
-            Variant(label, STATS + ("ace_vulkan_disable_features" to "\"$features\""))
-
-        /** Checked on Mesa lavapipe: 2 and 4 give a magenta frame, 1 and 3 the title screen. */
+        /**
+         * Checked on Mesa lavapipe with the frame-900 capture (non-zero bytes of 60,433):
+         * 1 → 44,576 (title screen); 2 → 29,881; 3 → 10,957; 4 → 44,821 (all magenta).
+         */
         val VARIANTS = listOf(
             Variant("1 Default", STATS),
             Variant(
-                "2 Magenta painted into the game's render target before it is copied out",
-                STATS + ("ace_resolve_debug_clear" to "true"),
+                "2 Every game pixel shader replaced by plain magenta",
+                STATS + ("ace_ps_debug_solid" to "true"),
             ),
             Variant(
-                "3 Draws with no culling and no depth/stencil rejection",
-                STATS + ("ace_pipeline_debug_permissive" to "true"),
+                "3 Blending off, all colour channels writable",
+                STATS + ("ace_pipeline_debug_no_blend" to "true"),
             ),
             Variant(
-                "4 Like 2, with 8-bit gamma render targets",
-                STATS + ("ace_resolve_debug_clear" to "true") + ("gamma_render_target_as_unorm16" to "false"),
+                "4 Magenta shader + blending off + no culling/depth/stencil rejection",
+                STATS + ("ace_ps_debug_solid" to "true") + ("ace_pipeline_debug_no_blend" to "true") +
+                    ("ace_pipeline_debug_permissive" to "true"),
             ),
         )
     }
