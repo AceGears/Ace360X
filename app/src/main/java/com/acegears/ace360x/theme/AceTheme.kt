@@ -1,35 +1,16 @@
 package com.acegears.ace360x.theme
 
 import android.content.Context
-import android.graphics.Typeface
 import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.automirrored.sharp.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Close
@@ -37,13 +18,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.sharp.Add
-import androidx.compose.material.icons.sharp.Build
-import androidx.compose.material.icons.sharp.Close
-import androidx.compose.material.icons.sharp.Info
-import androidx.compose.material.icons.sharp.Refresh
-import androidx.compose.material.icons.sharp.Search
-import androidx.compose.material.icons.sharp.Settings
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -52,21 +26,23 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 val LocalAceTheme = staticCompositionLocalOf { ResolvedTheme.resolve(ThemeCustomization()) }
 
-/** Effective motion tokens: the theme's, or [MotionTokens.REDUCED] when motion is off. */
-val LocalMotion = staticCompositionLocalOf { Themes.DEFAULT.motion }
+/** Effective motion tokens: scaled by the user's animation speed, or [MotionTokens.REDUCED]. */
+val LocalMotion = staticCompositionLocalOf { MotionTokens.DEFAULT }
 
 fun Long.toColor(): Color = Color(this.toInt())
 
@@ -79,16 +55,6 @@ fun EasingKind.toEasing(): Easing = when (this) {
     EasingKind.EMPHASIZED -> CubicBezierEasing(0.2f, 0f, 0f, 1f)
     EasingKind.DECELERATE -> LinearOutSlowInEasing
     EasingKind.LINEAR -> LinearEasing
-}
-
-internal fun FontKind.toFamily(): FontFamily = when (this) {
-    FontKind.DEFAULT -> FontFamily.Default
-    FontKind.SERIF -> FontFamily.Serif
-    FontKind.MONOSPACE -> FontFamily.Monospace
-    FontKind.CONDENSED -> FontFamily(Typeface.create("sans-serif-condensed", Typeface.NORMAL))
-    FontKind.LIGHT -> FontFamily(Typeface.create("sans-serif-light", Typeface.NORMAL))
-    FontKind.MEDIUM -> FontFamily(Typeface.create("sans-serif-medium", Typeface.NORMAL))
-    FontKind.BLACK -> FontFamily(Typeface.create("sans-serif-black", Typeface.NORMAL))
 }
 
 private fun Palette.toColorScheme(): ColorScheme {
@@ -113,93 +79,78 @@ private fun Palette.toColorScheme(): ColorScheme {
         outline = outline.toColor(), outlineVariant = outlineVariant.toColor(),
         error = error.toColor(), onError = onError.toColor(),
         errorContainer = errorContainer.toColor(), onErrorContainer = onErrorContainer.toColor(),
+        inverseSurface = onSurface.toColor(), inverseOnSurface = background.toColor(),
     )
 }
 
-private fun TypeTokens.toTypography(): Typography {
+/** Heavy, tight sans-serif headings and widely tracked labels (the AceArcade look). */
+private fun aceTypography(): Typography {
     val base = Typography()
-    val heading = headingFont.toFamily()
-    val body = bodyFont.toFamily()
-    fun TextStyle.h() = copy(fontFamily = heading, letterSpacing = (letterSpacing.value + headingLetterSpacing).sp)
-    fun TextStyle.b() = copy(fontFamily = body)
+    fun TextStyle.set(weight: FontWeight, tracking: Float = 0f) =
+        copy(fontFamily = FontFamily.SansSerif, fontWeight = weight, letterSpacing = tracking.sp)
     return base.copy(
-        displayLarge = base.displayLarge.h(), displayMedium = base.displayMedium.h(),
-        displaySmall = base.displaySmall.h(), headlineLarge = base.headlineLarge.h(),
-        headlineMedium = base.headlineMedium.h(), headlineSmall = base.headlineSmall.h(),
-        titleLarge = base.titleLarge.h(), titleMedium = base.titleMedium.h(),
-        titleSmall = base.titleSmall.h(),
-        bodyLarge = base.bodyLarge.b(), bodyMedium = base.bodyMedium.b(), bodySmall = base.bodySmall.b(),
-        labelLarge = base.labelLarge.b(), labelMedium = base.labelMedium.b(), labelSmall = base.labelSmall.b(),
+        displaySmall = base.displaySmall.set(FontWeight.Black, -0.5f),
+        headlineLarge = base.headlineLarge.set(FontWeight.ExtraBold, -0.3f),
+        headlineMedium = base.headlineMedium.set(FontWeight.ExtraBold, -0.2f),
+        headlineSmall = base.headlineSmall.set(FontWeight.Bold),
+        titleLarge = base.titleLarge.set(FontWeight.Bold),
+        titleMedium = base.titleMedium.set(FontWeight.SemiBold, 0.1f),
+        titleSmall = base.titleSmall.set(FontWeight.SemiBold, 0.1f),
+        labelLarge = base.labelLarge.set(FontWeight.SemiBold, 0.4f),
+        labelMedium = base.labelMedium.set(FontWeight.SemiBold, 0.5f),
+        labelSmall = base.labelSmall.set(FontWeight.Bold, 0.8f),
     )
 }
 
-fun ShapeTokens.corner(sizeDp: Float): CornerBasedShape = when (kind) {
-    CornerKind.ROUNDED -> RoundedCornerShape(sizeDp.dp)
-    CornerKind.CUT -> CutCornerShape(sizeDp.dp)
+/** Material shapes from the one corner radius the user can adjust. */
+private fun shapesFor(cornerDp: Int): Shapes {
+    val c = cornerDp.toFloat()
+    return Shapes(
+        extraSmall = RoundedCornerShape((c * 0.35f).dp),
+        small = RoundedCornerShape((c * 0.6f).dp),
+        medium = RoundedCornerShape(c.dp),
+        large = RoundedCornerShape((c * 1.4f).dp),
+        extraLarge = RoundedCornerShape((c * 1.8f).dp),
+    )
 }
 
-private fun ShapeTokens.toShapes(): Shapes = Shapes(
-    extraSmall = corner(smallDp / 2),
-    small = corner(smallDp),
-    medium = corner(mediumDp),
-    large = corner(largeDp),
-    extraLarge = corner(largeDp * 1.3f),
-)
-
-/** Applies a customised theme: Material colours, type, shapes plus Ace-specific locals. */
+/** Applies a customised theme: Material colours, type, shapes, text size plus Ace-specific locals. */
 @Composable
 fun AceTheme(customization: ThemeCustomization, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val resolved = remember(customization) { ResolvedTheme.resolve(customization) }
+    val systemDark = isSystemInDarkTheme()
+    val resolved = remember(customization, systemDark) { ResolvedTheme.resolve(customization, systemDark) }
     val scheme = remember(resolved.palette) { resolved.palette.toColorScheme() }
-    val typography = remember(resolved.spec.type) { resolved.spec.type.toTypography() }
-    val shapes = remember(resolved.shapes) { resolved.shapes.toShapes() }
+    val typography = remember { aceTypography() }
+    val shapes = remember(resolved.cornerDp) { shapesFor(resolved.cornerDp) }
     // Read once per theme change; a system toggle applies on the next activity start.
     val systemOff = remember(context) { systemAnimationsOff(context) }
-    val motionOff = resolved.reduceMotionByUser || systemOff
-    val motion = if (motionOff) MotionTokens.REDUCED else resolved.spec.motion
-    CompositionLocalProvider(LocalAceTheme provides resolved, LocalMotion provides motion) {
+    val motion = if (resolved.reduceMotionByUser || systemOff) {
+        MotionTokens.REDUCED
+    } else {
+        MotionTokens.DEFAULT.scaled(resolved.durationScale)
+    }
+    val density = LocalDensity.current
+    val scaled = remember(density, resolved.textScale) {
+        Density(density.density, density.fontScale * resolved.textScale)
+    }
+    CompositionLocalProvider(
+        LocalAceTheme provides resolved,
+        LocalMotion provides motion,
+        LocalDensity provides scaled,
+    ) {
         MaterialTheme(colorScheme = scheme, typography = typography, shapes = shapes, content = content)
     }
 }
 
-/** Icons in the active theme's icon style. Toggle-state icons (favourite star) stay as chosen. */
+/** The app's icons (rounded set). Toggle-state icons (favourite star) stay as chosen. */
 object AceIcons {
-    private val style: IconStyle
-        @Composable @ReadOnlyComposable get() = LocalAceTheme.current.spec.icons
-
-    private fun pick(s: IconStyle, f: ImageVector, o: ImageVector, r: ImageVector, sh: ImageVector) =
-        when (s) {
-            IconStyle.FILLED -> f
-            IconStyle.OUTLINED -> o
-            IconStyle.ROUNDED -> r
-            IconStyle.SHARP -> sh
-        }
-
-    val Library: ImageVector
-        @Composable @ReadOnlyComposable get() = pick(
-            style, Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List,
-            Icons.AutoMirrored.Rounded.List, Icons.AutoMirrored.Sharp.List,
-        )
-    val Device: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Build, Icons.Outlined.Build, Icons.Rounded.Build, Icons.Sharp.Build)
-    val Settings: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Settings, Icons.Outlined.Settings, Icons.Rounded.Settings, Icons.Sharp.Settings)
-    val Info: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Info, Icons.Outlined.Info, Icons.Rounded.Info, Icons.Sharp.Info)
-    val Add: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Add, Icons.Outlined.Add, Icons.Rounded.Add, Icons.Sharp.Add)
-    val Close: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Close, Icons.Outlined.Close, Icons.Rounded.Close, Icons.Sharp.Close)
-    val Refresh: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Refresh, Icons.Outlined.Refresh, Icons.Rounded.Refresh, Icons.Sharp.Refresh)
-    val Search: ImageVector
-        @Composable @ReadOnlyComposable get() =
-            pick(style, Icons.Filled.Search, Icons.Outlined.Search, Icons.Rounded.Search, Icons.Sharp.Search)
+    val Library: ImageVector get() = Icons.AutoMirrored.Rounded.List
+    val Device: ImageVector get() = Icons.Rounded.Build
+    val Settings: ImageVector get() = Icons.Rounded.Settings
+    val Info: ImageVector get() = Icons.Rounded.Info
+    val Add: ImageVector get() = Icons.Rounded.Add
+    val Close: ImageVector get() = Icons.Rounded.Close
+    val Refresh: ImageVector get() = Icons.Rounded.Refresh
+    val Search: ImageVector get() = Icons.Rounded.Search
 }

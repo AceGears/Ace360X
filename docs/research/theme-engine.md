@@ -35,3 +35,5 @@
 - Ambiance is drawn with `Canvas` behind non-game screens only; the game runs in the `:emu`
   process with its own activity, so no ambiance can run during gameplay. Animated ambiance
   uses one slow infinite transition and draws a static frame when motion is reduced.
+
+Superseded 2026-11-23: the theme set and token model were replaced to match AceArcade; see `acearcade-design.md`.

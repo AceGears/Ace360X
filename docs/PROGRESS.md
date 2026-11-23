@@ -238,3 +238,15 @@
   missing surfaces. Added the upstream escape hatch as a per-game Experimental option to
   test it. Frame captures can't reproduce this (the trace player commits all memory).
   The performance readout has not been reported on yet.
+
+## Session 2026-11-23 (evening) — AceArcade design, stage 1
+- Owner asked for the UI/UX of their AceArcade app (AceCore repo, branch `overhaul-0.4`).
+  Decisions recorded: rebuild fresh (no GPL code copied), AceArcade's theme set only.
+- Done: token model, 17 themes (dark + light), backdrop, glass/bevel/glow surfaces,
+  typography, look adjustments, Appearance screen, storage schema 2 (old theme choices reset
+  to the default). JVM tests rewritten; the pure-Kotlin part was compiled and run locally
+  (10/10). The Compose code is compiled only by CI.
+- **Not verified on a device**: how any of it looks. Not built: stage 2 (screen structure),
+  stage 3 (motion effects), Dynamic and Custom themes.
+- Owner also asked for "all games at a stable 60 fps without issues": answered that this
+  cannot be promised (CLAUDE.md §15, §20.3); work continues per title with measurements.

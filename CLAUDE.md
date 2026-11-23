@@ -24,8 +24,9 @@ app/                Kotlin + Jetpack Compose UI (no emulation logic), package co
   core/NativeBridge.kt  the ONLY Kotlin side of JNI
   ui/  library/  device/  diag/ (Diagnostics report + share)  settings/ (EmulatorSettings → cvars)
   emu/ (EmulatorActivity, GamepadInput/GamepadMapper, TouchControls)
-  theme/ (ThemeSpec tokens + 12 Themes + WCAG ThemeChecks [pure Kotlin]; AceTheme,
-          Ambiance, ThemedComponents, AppearanceSection, ThemeRepository [Compose/DataStore])
+  theme/ (ThemeSpec tokens + AceArcade theme set + WCAG ThemeChecks [pure Kotlin]; AceTheme,
+          Ambiance (backdrop), ThemedComponents, AppearanceSection, ThemeRepository
+          [Compose/DataStore])
                     (later: overlay/)
 app/src/main/java/jp/xenia/emulator/  Kotlin port of upstream WindowedAppActivity/
                     WindowSurfaceView — package/class names fixed by upstream's JNI
@@ -102,13 +103,20 @@ docs/               feasibility, architecture, ADRs, reports
   only in debug builds).
 
 ## 10. Theme engine
-- `ThemeSpec` = colour scheme + typography + shape + elevation + motion tokens + icon style +
-  ambiance renderer + component overrides (cards, nav, dialogs, toggles, sliders, progress, focus).
-- 12 themes (Obsidian Elite, Neon Velocity, Crimson Reactor, Arctic Glass, Aurora Spectrum,
-  Titanium Forge, Emerald Matrix, Solar Flare, Midnight Cosmos, Retro Console, Minimal Luxe,
-  Liquid Chrome). A theme that only changes colours does not count as done.
+- The UI/UX follows the owner's **AceArcade** app (design structure, themes, surfaces, motion).
+  It is rebuilt in Ace360X's own code: no AceArcade source is copied (AceArcade is GPL).
+  Reference, decisions and deliberate differences: `docs/research/acearcade-design.md`.
+- `ThemeSpec` = a dark and a light `ThemeVariant` (seven brand colours, optional backdrop of
+  gradient + light orbs, glass-card opacity). Typography, shapes and motion are shared by all
+  themes and adjusted by the user (glow, gradient, corners, border, text size, animation speed).
+- Theme set = AceArcade's: 5 glass themes (Aqua Glass, Violet Pulse, Jade Glass, Sandstone,
+  Plasma) + 12 solid themes (AceArcade Steel [default], Steel Light, Neon classic, Neon Purple,
+  Cyber Blue, Minimal, AMOLED Black, Midnight Blue, Crimson Red, Royal Purple, Emerald Green,
+  Gold Edition). Dynamic Material You and Custom are not built yet.
 - User customisations stored as a diff over a base theme (DataStore, versioned schema).
-- Every theme must pass WCAG AA contrast for text (automated test).
+- Every theme variant must pass WCAG AA contrast for text (automated test), including on its
+  backdrop and glass cards. Where AceArcade's colours don't, text colours and orb brightness
+  are adjusted; decorative colours are not.
 
 ## 11. Battery and thermal
 - Use ADPF: `PerformanceHintManager` for the emulation thread group, `PowerManager`
@@ -146,7 +154,7 @@ docs/               feasibility, architecture, ADRs, reports
 | 6 Input | Controller + touch verified on ≥ 1 device; remap persists |
 | 7 Perf | Profiles backed by measurements; 15/30/60-min reports exist |
 | 8 UI | All screens navigable, no dead controls, a11y scan clean |
-| 9 Themes | 12 themes pass contrast tests + visual review screenshots |
+| 9 Themes | AceArcade theme set passes contrast tests + visual review screenshots |
 | 10–12 | Compat reports, security review doc, signed release build, limitations doc |
 
 ## 15. Known limitations and risks
@@ -209,10 +217,12 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   sort/favourites/playtime, quit confirmation.
 - Implemented (unverified on device): extracted-game and GoD launch via `acetree://` SAF provider
   (patches 0008/0009, native/host/saf_tree_provider.cc, emu/SafTree.kt).
-- Implemented (unverified on device): theme engine — 12 themes (palette, type, shape,
-  elevation, motion tokens, icon style, ambiance renderer, component overrides), accent/
-  ambiance/motion/corner customisation stored as a versioned diff, WCAG AA JVM test
-  (`ThemeTest`). Visual review screenshots (Phase 9) need a device.
+- Implemented (unverified on device): AceArcade design, stage 1 of 3 — AceArcade's 17 themes
+  (dark + light each, backdrops, glass cards, bevel/glow surfaces, typography), mode and look
+  adjustments stored as a versioned diff, WCAG AA JVM test (`ThemeTest`). The earlier 12
+  themes were removed at the owner's request. Stage 2 (home/dock/game page/settings
+  structure) and stage 3 (liquid indicator, delete effect) are not started. Visual review
+  screenshots (Phase 9) need a device.
 - Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
   sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).
 - Compatibility DB: `compat/compat.json` has two entries (555307E5, 55530825: In-game); other titles Untested;

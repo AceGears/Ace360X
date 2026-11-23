@@ -1,329 +1,288 @@
 package com.acegears.ace360x.theme
 
-/** The 12 built-in themes (CLAUDE.md §10). Every token group differs, not just colour. */
+/**
+ * The built-in themes: the same set, names and colours as the owner's AceArcade app
+ * (CLAUDE.md §10). Five glass themes with a backdrop, then twelve solid themes.
+ * "Dynamic Material You" and "Custom" from AceArcade are not built yet.
+ */
 object Themes {
+    private fun colors(p: Long, s: Long, a: Long, bg: Long, surface: Long, glow: Long, alt: Long) =
+        BrandColors(p, s, a, bg, surface, glow, alt)
 
-    val OBSIDIAN_ELITE = ThemeSpec(
-        id = "obsidian_elite", name = "Obsidian Elite", tagline = "Black glass, gold detail",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF0A0A0B, surface = 0xFF121214, surfaceVariant = 0xFF1D1C1F,
-            primary = 0xFFD4AF37, secondary = 0xFFB9B8BE, tertiary = 0xFFC9A66B,
-            text = 0xFFEDEAE3, mutedText = 0xFFB5AFA3, outline = 0xFF5A5446,
-        ),
-        type = TypeTokens(FontKind.SERIF, FontKind.DEFAULT, headingLetterSpacing = 0.4f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 4f, 6f, 10f),
-        elevation = ElevationTokens(CardStyle.OUTLINED, 0f, 1f),
-        motion = MotionTokens(120, 240, 420, EasingKind.EMPHASIZED, ambianceLoopMs = 9000),
-        icons = IconStyle.OUTLINED,
-        ambiance = AmbianceTokens(AmbianceKind.VIGNETTE_GLINT, listOf(0xFFD4AF37, 0xFF2A2516), 0.10f),
-        components = ComponentTokens(true, 2f, 2f, 0xFFD4AF37),
+    private fun glass(
+        id: String, name: String, tagline: String,
+        dark: BrandColors, darkBackdrop: Backdrop, darkAlpha: Float,
+        light: BrandColors, lightBackdrop: Backdrop, lightAlpha: Float,
+    ) = ThemeSpec(
+        id, name, tagline, premium = true,
+        dark = ThemeVariant(dark, darkBackdrop, darkAlpha),
+        light = ThemeVariant(light, lightBackdrop, lightAlpha),
     )
 
-    val NEON_VELOCITY = ThemeSpec(
-        id = "neon_velocity", name = "Neon Velocity", tagline = "Synthwave speed",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF07060F, surface = 0xFF0F0D1C, surfaceVariant = 0xFF1A1730,
-            primary = 0xFF00E5FF, secondary = 0xFFFF7ADF, tertiary = 0xFFB4FF39,
-            text = 0xFFF2F0FF, mutedText = 0xFFBDB6DE, outline = 0xFF4A4280,
-        ),
-        type = TypeTokens(FontKind.CONDENSED, FontKind.DEFAULT, headingLetterSpacing = 1.2f, uppercaseLabels = true),
-        shapes = ShapeTokens(CornerKind.CUT, 6f, 10f, 14f),
-        elevation = ElevationTokens(CardStyle.GLOW, 0f, 1f),
-        motion = MotionTokens(90, 180, 300, EasingKind.EMPHASIZED, ambianceLoopMs = 4000),
-        icons = IconStyle.SHARP,
-        ambiance = AmbianceTokens(AmbianceKind.SYNTH_GRID, listOf(0xFFFF4FD2, 0xFF00E5FF), 0.16f),
-        components = ComponentTokens(false, 4f, 3f, 0xFFFF4FD2, sliderUsesSecondary = true),
+    /** A solid theme designed dark; its light version is derived with readable accents. */
+    private fun solid(id: String, name: String, tagline: String, dark: BrandColors, light: BrandColors = lightFrom(dark)) =
+        ThemeSpec(id, name, tagline, premium = false, dark = ThemeVariant(dark), light = ThemeVariant(light))
+
+    /** Pale tinted background and near-white cards carrying the dark theme's accents. */
+    fun lightFrom(d: BrandColors): BrandColors = d.copy(
+        background = ColorMath.blend(0xFFF6F6F8, d.glow, 0.05f),
+        surface = ColorMath.blend(0xFFFFFFFF, d.glow, 0.015f),
     )
 
-    val CRIMSON_REACTOR = ThemeSpec(
-        id = "crimson_reactor", name = "Crimson Reactor", tagline = "Red-hot core",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF0D0606, surface = 0xFF170A0A, surfaceVariant = 0xFF261313,
-            primary = 0xFFFF5A52, secondary = 0xFFFFA05C, tertiary = 0xFFFFD166,
-            text = 0xFFF7ECEA, mutedText = 0xFFD2B6B2, outline = 0xFF6A3532,
-        ),
-        type = TypeTokens(FontKind.BLACK, FontKind.DEFAULT, headingLetterSpacing = 0.2f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 6f, 12f, 20f),
-        elevation = ElevationTokens(CardStyle.TONAL, 4f, 0f),
-        motion = MotionTokens(100, 220, 380, EasingKind.EMPHASIZED, ambianceLoopMs = 3200),
-        icons = IconStyle.FILLED,
-        ambiance = AmbianceTokens(AmbianceKind.REACTOR_CORE, listOf(0xFFFF3B30, 0xFFFF8A3D), 0.11f),
-        components = ComponentTokens(true, 6f, 3f, 0xFFFFA05C, switchUsesTertiary = true),
+    val AQUA_GLASS = glass(
+        "aqua_glass", "Aqua Glass", "Frosted aqua dashboard",
+        colors(0xFF22D3EE, 0xFF8FD8E8, 0xFF5EEAD4, 0xFF071B26, 0xFF0F2A37, 0xFF22D3EE, 0xFF3B82F6),
+        Backdrop(0xFF0B3446, 0xFF04111A, listOf(Orb(0xFF0E8FA0, 0.15f, 0.08f, 0.75f), Orb(0xFF1E5AA8, 0.95f, 0.55f, 0.6f))), 0.62f,
+        colors(0xFF0E7490, 0xFF155E75, 0xFF0891B2, 0xFFE4F3F8, 0xFFFFFFFF, 0xFF06B6D4, 0xFF2563EB),
+        Backdrop(0xFFC6E9F2, 0xFFEAF6FA, listOf(Orb(0xFF7DD3E8, 0.1f, 0.05f, 0.7f), Orb(0xFFA5C8F5, 0.9f, 0.6f, 0.55f))), 0.7f,
     )
 
-    val ARCTIC_GLASS = ThemeSpec(
-        id = "arctic_glass", name = "Arctic Glass", tagline = "Frosted light",
-        seed = PaletteSeed(
-            dark = false, background = 0xFFEAF2F8, surface = 0xFFF7FAFD, surfaceVariant = 0xFFDCE7F0,
-            primary = 0xFF0A5A87, secondary = 0xFF355F78, tertiary = 0xFF4B4F96,
-            text = 0xFF0E1A24, mutedText = 0xFF3A4D5C, outline = 0xFF7F98AB,
-        ),
-        type = TypeTokens(FontKind.LIGHT, FontKind.DEFAULT, headingLetterSpacing = 0.3f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 12f, 20f, 28f),
-        elevation = ElevationTokens(CardStyle.GLASS, 0f, 1f, cardAlpha = 0.78f),
-        motion = MotionTokens(140, 280, 480, EasingKind.DECELERATE, ambianceLoopMs = 14000),
-        icons = IconStyle.ROUNDED,
-        ambiance = AmbianceTokens(AmbianceKind.FROST, listOf(0xFFB9D7EC, 0xFFCFE0F2), 0.40f),
-        components = ComponentTokens(true, 3f, 2f, 0xFF0A5A87),
+    val VIOLET_PULSE = glass(
+        "violet_pulse", "Violet Pulse", "Violet glow on graphite",
+        colors(0xFF8B5CF6, 0xFFC4B5FD, 0xFFA78BFA, 0xFF121016, 0xFF1C1A22, 0xFF8B5CF6, 0xFFF43F5E),
+        Backdrop(0xFF1A1424, 0xFF0E0C12, listOf(Orb(0xFF6D28D9, 0.5f, 0.0f, 0.65f))), 0.78f,
+        colors(0xFF6D28D9, 0xFF5B21B6, 0xFF7C3AED, 0xFFF5F3FA, 0xFFFFFFFF, 0xFF8B5CF6, 0xFFE11D48),
+        Backdrop(0xFFEDE7FA, 0xFFF8F7FC, listOf(Orb(0xFFC4B5FD, 0.5f, 0.0f, 0.6f))), 0.8f,
     )
 
-    val AURORA_SPECTRUM = ThemeSpec(
-        id = "aurora_spectrum", name = "Aurora Spectrum", tagline = "Polar lights",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF050B12, surface = 0xFF0B1520, surfaceVariant = 0xFF15222F,
-            primary = 0xFF5CF2B5, secondary = 0xFFB8AEFF, tertiary = 0xFF4FC3F7,
-            text = 0xFFE8F4F2, mutedText = 0xFFA9C4C6, outline = 0xFF35536A,
-        ),
-        type = TypeTokens(FontKind.MEDIUM, FontKind.DEFAULT, headingLetterSpacing = 0.1f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 16f, 24f, 32f),
-        elevation = ElevationTokens(CardStyle.TONAL, 1f, 0f),
-        motion = MotionTokens(150, 300, 520, EasingKind.STANDARD, ambianceLoopMs = 16000),
-        icons = IconStyle.ROUNDED,
-        ambiance = AmbianceTokens(AmbianceKind.AURORA, listOf(0xFF5CF2B5, 0xFFA295FF, 0xFF4FC3F7), 0.16f),
-        components = ComponentTokens(true, 4f, 2f, 0xFF5CF2B5, sliderUsesSecondary = true),
+    val JADE_GLASS = glass(
+        "jade_glass", "Jade Glass", "Jade-lit smoky glass",
+        colors(0xFF34D3B8, 0xFFA7C4BC, 0xFF5EEAD4, 0xFF0F1413, 0xFF19211F, 0xFF2DD4BF, 0xFF94A3B8),
+        Backdrop(0xFF1D2826, 0xFF0A0E0D, listOf(Orb(0xFF0F766E, 0.5f, 0.95f, 0.6f), Orb(0xFF334155, 0.1f, 0.1f, 0.5f))), 0.68f,
+        colors(0xFF0F766E, 0xFF3F5F58, 0xFF0D9488, 0xFFEEF3F1, 0xFFFFFFFF, 0xFF14B8A6, 0xFF64748B),
+        Backdrop(0xFFE1EBE7, 0xFFF6F8F7, listOf(Orb(0xFF99E6D8, 0.5f, 0.95f, 0.55f))), 0.74f,
     )
 
-    val TITANIUM_FORGE = ThemeSpec(
-        id = "titanium_forge", name = "Titanium Forge", tagline = "Machined metal, forge glow",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF101113, surface = 0xFF17191C, surfaceVariant = 0xFF24272B,
-            primary = 0xFFFF8A3D, secondary = 0xFFAAB2BB, tertiary = 0xFF86ACCD,
-            text = 0xFFE9EBED, mutedText = 0xFFB2B8BF, outline = 0xFF5A616A,
-        ),
-        type = TypeTokens(FontKind.CONDENSED, FontKind.DEFAULT, headingLetterSpacing = 0.6f, uppercaseLabels = true),
-        shapes = ShapeTokens(CornerKind.CUT, 4f, 6f, 8f),
-        elevation = ElevationTokens(CardStyle.OUTLINED, 2f, 1.5f),
-        motion = MotionTokens(80, 160, 280, EasingKind.LINEAR, ambianceLoopMs = 0),
-        icons = IconStyle.SHARP,
-        ambiance = AmbianceTokens(AmbianceKind.BRUSHED_METAL, listOf(0xFFAAB2BB, 0xFFFF8A3D), 0.06f),
-        components = ComponentTokens(false, 4f, 2f, 0xFFFF8A3D),
+    val SANDSTONE = glass(
+        "sandstone", "Sandstone", "Warm sandstone glass",
+        colors(0xFFF26B3A, 0xFFE7C9A9, 0xFFFF8A4C, 0xFF17110C, 0xFF241A13, 0xFFF26B3A, 0xFFD4A373),
+        Backdrop(0xFF3A2416, 0xFF140E0A, listOf(Orb(0xFFC2672E, 0.85f, 0.85f, 0.7f), Orb(0xFF5A3A22, 0.1f, 0.15f, 0.5f))), 0.7f,
+        colors(0xFFC2410C, 0xFF7C4A2D, 0xFFEA580C, 0xFFF5EDE4, 0xFFFFFBF6, 0xFFF97316, 0xFFB45309),
+        Backdrop(0xFFEAD7C3, 0xFFF9F2EA, listOf(Orb(0xFFF4B183, 0.85f, 0.85f, 0.65f))), 0.78f,
     )
 
-    val EMERALD_MATRIX = ThemeSpec(
-        id = "emerald_matrix", name = "Emerald Matrix", tagline = "Terminal green",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF020805, surface = 0xFF06120B, surfaceVariant = 0xFF0E2115,
-            primary = 0xFF2BFF88, secondary = 0xFF7FDBA3, tertiary = 0xFFC4FF6B,
-            text = 0xFFD9FFE6, mutedText = 0xFF95C9A8, outline = 0xFF22603D,
-        ),
-        type = TypeTokens(FontKind.MONOSPACE, FontKind.MONOSPACE),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 0f, 2f, 4f),
-        elevation = ElevationTokens(CardStyle.OUTLINED, 0f, 1f),
-        motion = MotionTokens(60, 120, 200, EasingKind.LINEAR, ambianceLoopMs = 6000),
-        icons = IconStyle.SHARP,
-        ambiance = AmbianceTokens(AmbianceKind.DIGITAL_RAIN, listOf(0xFF2BFF88), 0.20f),
-        components = ComponentTokens(true, 3f, 2f, 0xFF2BFF88),
+    val PLASMA = glass(
+        "plasma", "Plasma", "Liquid plasma glass",
+        colors(0xFF8B7CFF, 0xFFB8C1FF, 0xFF38E1FF, 0xFF07071A, 0xFF12122A, 0xFF7B5CFF, 0xFFFF4FB3),
+        Backdrop(
+            0xFF0C0B26, 0xFF05040F,
+            listOf(Orb(0xFF00B4E6, 0.05f, 0.1f, 0.6f), Orb(0xFF7B2FF7, 0.95f, 0.35f, 0.65f), Orb(0xFFF72585, 0.3f, 1.0f, 0.55f)),
+        ), 0.6f,
+        colors(0xFF5B3DF5, 0xFF3F3A8C, 0xFF0891B2, 0xFFF1F0FF, 0xFFFFFFFF, 0xFF7C5CFF, 0xFFDB2777),
+        Backdrop(
+            0xFFE7E5FF, 0xFFF7F6FF,
+            listOf(Orb(0xFFA5F3FC, 0.05f, 0.1f, 0.55f), Orb(0xFFC4B5FD, 0.95f, 0.35f, 0.6f), Orb(0xFFFBCFE8, 0.3f, 1.0f, 0.5f)),
+        ), 0.7f,
     )
 
-    val SOLAR_FLARE = ThemeSpec(
-        id = "solar_flare", name = "Solar Flare", tagline = "Molten amber",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF120A03, surface = 0xFF1C1107, surfaceVariant = 0xFF2B1B0D,
-            primary = 0xFFFFB000, secondary = 0xFFFF9466, tertiary = 0xFFFFE082,
-            text = 0xFFFFF3E3, mutedText = 0xFFDBC0A0, outline = 0xFF74512B,
-        ),
-        type = TypeTokens(FontKind.MEDIUM, FontKind.DEFAULT, headingLetterSpacing = 0.5f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 10f, 18f, 26f),
-        elevation = ElevationTokens(CardStyle.TONAL, 3f, 0f),
-        motion = MotionTokens(110, 230, 400, EasingKind.EMPHASIZED, ambianceLoopMs = 12000),
-        icons = IconStyle.FILLED,
-        ambiance = AmbianceTokens(AmbianceKind.CORONA, listOf(0xFFFFB000, 0xFFFF7A4D), 0.16f),
-        components = ComponentTokens(true, 5f, 3f, 0xFFFFE082, switchUsesTertiary = true),
-    )
+    private val STEEL_DARK = colors(0xFFE3202B, 0xFFC9CDD4, 0xFFFF5A4E, 0xFF0B0B0E, 0xFF16161B, 0xFFFF2A2A, 0xFFC9CDD4)
+    private val STEEL_LIGHT = colors(0xFFC4141F, 0xFF4A4D57, 0xFFE3202B, 0xFFF4F4F6, 0xFFFFFFFF, 0xFFE3202B, 0xFF6B6F7A)
 
-    val MIDNIGHT_COSMOS = ThemeSpec(
-        id = "midnight_cosmos", name = "Midnight Cosmos", tagline = "Deep space",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF04040F, surface = 0xFF0B0B1E, surfaceVariant = 0xFF16162F,
-            primary = 0xFFA996FF, secondary = 0xFF79AEFF, tertiary = 0xFFFF95DB,
-            text = 0xFFECEBFF, mutedText = 0xFFB5B3D9, outline = 0xFF3D3B69,
-        ),
-        type = TypeTokens(FontKind.LIGHT, FontKind.DEFAULT, headingLetterSpacing = 1.0f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 12f, 20f, 28f),
-        elevation = ElevationTokens(CardStyle.TONAL, 2f, 0f),
-        motion = MotionTokens(160, 320, 560, EasingKind.DECELERATE, ambianceLoopMs = 8000),
-        icons = IconStyle.OUTLINED,
-        ambiance = AmbianceTokens(AmbianceKind.STARFIELD, listOf(0xFFFFFFFF, 0xFFA996FF), 0.70f),
-        components = ComponentTokens(true, 3f, 2f, 0xFFA996FF),
+    val STEEL = solid("steel", "AceArcade Steel", "Neon red on brushed steel", STEEL_DARK, STEEL_LIGHT)
+    val STEEL_LIGHT_FIRST = solid("steel_light", "AceArcade Steel Light", "Steel in daylight", STEEL_DARK, STEEL_LIGHT)
+    val NEON_CLASSIC = solid(
+        "neon_classic", "AceArcade Neon (classic)", "Magenta and electric blue",
+        colors(0xFFE5199C, 0xFF2E86FF, 0xFF2ED2FF, 0xFF06051A, 0xFF110C2A, 0xFFF03AD6, 0xFF2E86FF),
     )
-
-    val RETRO_CONSOLE = ThemeSpec(
-        id = "retro_console", name = "Retro Console", tagline = "Amber phosphor CRT",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF14110A, surface = 0xFF1E1A10, surfaceVariant = 0xFF2B2617,
-            primary = 0xFFFFC94A, secondary = 0xFF9FD66F, tertiary = 0xFFF07A6C,
-            text = 0xFFF5E9C8, mutedText = 0xFFCDBE96, outline = 0xFF6A5F3A,
-        ),
-        type = TypeTokens(FontKind.MONOSPACE, FontKind.DEFAULT, headingLetterSpacing = 0.8f, uppercaseLabels = true),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 0f, 0f, 2f),
-        elevation = ElevationTokens(CardStyle.OUTLINED, 0f, 2f),
-        motion = MotionTokens(50, 100, 160, EasingKind.LINEAR, ambianceLoopMs = 0),
-        icons = IconStyle.SHARP,
-        ambiance = AmbianceTokens(AmbianceKind.SCANLINES, listOf(0xFF000000, 0xFFFFC94A), 0.13f),
-        components = ComponentTokens(false, 8f, 3f, 0xFFFFC94A),
+    val NEON_PURPLE = solid(
+        "neon_purple", "Neon Purple", "Ultraviolet",
+        colors(0xFFB026FF, 0xFFE0B3FF, 0xFFD46BFF, 0xFF0A0414, 0xFF170A26, 0xFFB026FF, 0xFFFF2EC4),
     )
-
-    val MINIMAL_LUXE = ThemeSpec(
-        id = "minimal_luxe", name = "Minimal Luxe", tagline = "Quiet, paper-white",
-        seed = PaletteSeed(
-            dark = false, background = 0xFFFAF8F5, surface = 0xFFFFFFFF, surfaceVariant = 0xFFF0ECE6,
-            primary = 0xFF1F1F1F, secondary = 0xFF665A4B, tertiary = 0xFF7E6331,
-            text = 0xFF1A1A1A, mutedText = 0xFF55504A, outline = 0xFFC9C1B6,
-        ),
-        type = TypeTokens(FontKind.SERIF, FontKind.DEFAULT, headingLetterSpacing = 0.2f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 2f, 4f, 8f),
-        elevation = ElevationTokens(CardStyle.OUTLINED, 0f, 0.5f),
-        motion = MotionTokens(130, 260, 440, EasingKind.STANDARD, ambianceLoopMs = 0),
-        icons = IconStyle.OUTLINED,
-        ambiance = AmbianceTokens(AmbianceKind.NONE, emptyList(), 0f),
-        components = ComponentTokens(true, 2f, 1.5f, 0xFF1F1F1F),
+    val CYBER_BLUE = solid(
+        "cyber_blue", "Cyber Blue", "Cold neon blue",
+        colors(0xFF00B3FF, 0xFFA8E6FF, 0xFF00F0FF, 0xFF020A12, 0xFF0A1824, 0xFF00C8FF, 0xFF7A5CFF),
     )
-
-    val LIQUID_CHROME = ThemeSpec(
-        id = "liquid_chrome", name = "Liquid Chrome", tagline = "Polished reflections",
-        seed = PaletteSeed(
-            dark = true, background = 0xFF0C0D10, surface = 0xFF15171B, surfaceVariant = 0xFF23262C,
-            primary = 0xFFD8E1EA, secondary = 0xFFA3B8CB, tertiary = 0xFFCDB0FF,
-            text = 0xFFF0F3F6, mutedText = 0xFFB8C0C9, outline = 0xFF5A626D,
-        ),
-        type = TypeTokens(FontKind.MEDIUM, FontKind.DEFAULT, headingLetterSpacing = 0.3f),
-        shapes = ShapeTokens(CornerKind.ROUNDED, 18f, 26f, 34f),
-        elevation = ElevationTokens(CardStyle.GLOW, 2f, 1f),
-        motion = MotionTokens(140, 300, 500, EasingKind.EMPHASIZED, ambianceLoopMs = 10000),
-        icons = IconStyle.ROUNDED,
-        ambiance = AmbianceTokens(AmbianceKind.CHROME_SWEEP, listOf(0xFFD8E1EA, 0xFF7C8796), 0.10f),
-        components = ComponentTokens(true, 4f, 2f, 0xFFCDB0FF),
+    val MINIMAL = solid(
+        "minimal", "Minimal", "Quiet greys",
+        colors(0xFFD0D3DA, 0xFF8A8F99, 0xFFFFFFFF, 0xFF0E0F11, 0xFF17181B, 0xFF3A3D44, 0xFF2A2C31),
+    )
+    val AMOLED = solid(
+        "amoled", "AMOLED Black", "True black",
+        colors(0xFFE3202B, 0xFFC9CDD4, 0xFFFF5A4E, 0xFF000000, 0xFF0B0B0D, 0xFFFF2A2A, 0xFFC9CDD4),
+        // Its light side is plain white with the same red.
+        lightFrom(colors(0xFFE3202B, 0xFFC9CDD4, 0xFFFF5A4E, 0xFF000000, 0xFF0B0B0D, 0xFFFF2A2A, 0xFFC9CDD4))
+            .copy(background = 0xFFFFFFFF, surface = 0xFFF7F7F8),
+    )
+    val MIDNIGHT_BLUE = solid(
+        "midnight_blue", "Midnight Blue", "Deep navy",
+        colors(0xFF4C8DFF, 0xFFB9C6E0, 0xFF7FB2FF, 0xFF070B18, 0xFF111833, 0xFF4C8DFF, 0xFF2ED2FF),
+    )
+    val CRIMSON_RED = solid(
+        "crimson_red", "Crimson Red", "Hot red",
+        colors(0xFFFF1E3C, 0xFFFFB3BC, 0xFFFF6B7D, 0xFF140509, 0xFF230A10, 0xFFFF1E3C, 0xFFFF6B7D),
+    )
+    val ROYAL_PURPLE = solid(
+        "royal_purple", "Royal Purple", "Regal violet",
+        colors(0xFF9B5CFF, 0xFFD3C2F5, 0xFFC08BFF, 0xFF0D0816, 0xFF1A1129, 0xFF9B5CFF, 0xFFF03AD6),
+    )
+    val EMERALD_GREEN = solid(
+        "emerald_green", "Emerald Green", "Bright emerald",
+        colors(0xFF1ED69B, 0xFFB5E8D6, 0xFF5CF0C0, 0xFF04120D, 0xFF0B2219, 0xFF1ED69B, 0xFF2ED2FF),
+    )
+    val GOLD_EDITION = solid(
+        "gold_edition", "Gold Edition", "Black and gold",
+        colors(0xFFE8B931, 0xFFF5E6B8, 0xFFFFD866, 0xFF0E0B05, 0xFF1C170B, 0xFFE8B931, 0xFFFFD866),
     )
 
     val ALL: List<ThemeSpec> = listOf(
-        OBSIDIAN_ELITE, NEON_VELOCITY, CRIMSON_REACTOR, ARCTIC_GLASS, AURORA_SPECTRUM,
-        TITANIUM_FORGE, EMERALD_MATRIX, SOLAR_FLARE, MIDNIGHT_COSMOS, RETRO_CONSOLE,
-        MINIMAL_LUXE, LIQUID_CHROME,
+        AQUA_GLASS, VIOLET_PULSE, JADE_GLASS, SANDSTONE, PLASMA,
+        STEEL, STEEL_LIGHT_FIRST, NEON_CLASSIC, NEON_PURPLE, CYBER_BLUE, MINIMAL, AMOLED,
+        MIDNIGHT_BLUE, CRIMSON_RED, ROYAL_PURPLE, EMERALD_GREEN, GOLD_EDITION,
     )
 
-    val DEFAULT: ThemeSpec = OBSIDIAN_ELITE
+    /** AceArcade's signature look. */
+    val DEFAULT: ThemeSpec = STEEL
 
     fun byId(id: String?): ThemeSpec = ALL.firstOrNull { it.id == id } ?: DEFAULT
-
-    /** Accent choices offered as an override; filtered per theme by [validAccentsFor]. */
-    val ACCENTS: List<Long> = listOf(
-        0xFFD4AF37, 0xFF00E5FF, 0xFFFF5A52, 0xFF5CF2B5, 0xFFFF8A3D, 0xFFA996FF,
-        0xFFFF4FD2, 0xFF2BFF88, 0xFFFFC94A, 0xFF79AEFF,
-        0xFF0A5A87, 0xFF8E2A5B, 0xFF1F1F1F, 0xFF2E6B3A, 0xFF6A3FB5, 0xFFA33A12,
-    )
-
-    fun validAccentsFor(theme: ThemeSpec): List<Long> = ACCENTS.filter { accent ->
-        ThemeChecks.failures(theme, Palette.from(theme.seed, accent)).isEmpty()
-    }
 }
 
-/** User customisation, stored as a diff over a base theme. Null = use the base value. */
+/**
+ * User customisation, stored as a diff over a base theme: null = the default value.
+ * Ranges and defaults follow AceArcade's theme editor.
+ */
 data class ThemeCustomization(
     val baseId: String = Themes.DEFAULT.id,
-    val accent: Long? = null,
-    val ambianceEnabled: Boolean? = null,
+    val mode: ThemeMode? = null,
+    /** Glow strength, 0–100. */
+    val glow: Int? = null,
+    /** Strength of header gradients and backdrop light, 0–100. */
+    val gradient: Int? = null,
+    /** Card border width, 0–4 dp. */
+    val border: Int? = null,
+    /** Corner radius, 0–32 dp. */
+    val corner: Int? = null,
+    /** Translucent cards on themes with a backdrop. */
+    val glass: Boolean? = null,
+    /** Text size, 80–150 %. */
+    val textScale: Int? = null,
+    /** Animation speed, 25–300 % (higher = faster). */
+    val animationSpeed: Int? = null,
     val reduceMotion: Boolean? = null,
-    val cornerScale: Float? = null,
 ) {
     /** Compact form for passing to the game process in the launch Intent. */
-    fun encode(): String = listOf(
-        "v$SCHEMA_VERSION", baseId,
-        accent?.let { java.lang.Long.toHexString(it) } ?: "-",
-        ambianceEnabled?.toString() ?: "-",
-        reduceMotion?.toString() ?: "-",
-        cornerScale?.toString() ?: "-",
-    ).joinToString("|")
+    fun encode(): String = listOf<Any?>(
+        "v$SCHEMA_VERSION", baseId, mode?.name, glow, gradient, border, corner, glass, textScale,
+        animationSpeed, reduceMotion,
+    ).joinToString("|") { it?.toString() ?: "-" }
 
     companion object {
         /** Bump when the stored keys change meaning; older diffs are then dropped. */
-        const val SCHEMA_VERSION = 1
-        val CORNER_SCALES = listOf(0.5f, 1f, 1.5f)
+        const val SCHEMA_VERSION = 2
+        private const val FIELDS = 11
+
+        const val DEFAULT_GLOW = 45
+        const val DEFAULT_GRADIENT = 60
+        const val DEFAULT_BORDER = 1
+        const val DEFAULT_CORNER = 16
+        const val DEFAULT_TEXT_SCALE = 100
+        const val DEFAULT_ANIMATION_SPEED = 100
+        val GLOW_RANGE = 0..100
+        val GRADIENT_RANGE = 0..100
+        val BORDER_RANGE = 0..4
+        val CORNER_RANGE = 0..32
+        val TEXT_SCALE_RANGE = 80..150
+        val ANIMATION_SPEED_RANGE = 25..300
 
         /** Inverse of [encode]; anything malformed or from another schema gives the default. */
         fun decode(s: String?): ThemeCustomization {
             val f = s?.split("|") ?: return ThemeCustomization()
-            if (f.size != 6 || f[0] != "v$SCHEMA_VERSION") return ThemeCustomization()
+            if (f.size != FIELDS || f[0] != "v$SCHEMA_VERSION") return ThemeCustomization()
             fun <T> opt(v: String, parse: (String) -> T?): T? = if (v == "-") null else parse(v)
+            fun int(v: String, range: IntRange) = opt(v) { it.toIntOrNull()?.takeIf { n -> n in range } }
             return ThemeCustomization(
                 baseId = Themes.byId(f[1]).id,
-                accent = opt(f[2]) { it.toLongOrNull(16) },
-                ambianceEnabled = opt(f[3]) { it.toBooleanStrictOrNull() },
-                reduceMotion = opt(f[4]) { it.toBooleanStrictOrNull() },
-                cornerScale = opt(f[5]) { it.toFloatOrNull() },
+                mode = opt(f[2]) { n -> ThemeMode.entries.firstOrNull { it.name == n } },
+                glow = int(f[3], GLOW_RANGE),
+                gradient = int(f[4], GRADIENT_RANGE),
+                border = int(f[5], BORDER_RANGE),
+                corner = int(f[6], CORNER_RANGE),
+                glass = opt(f[7]) { it.toBooleanStrictOrNull() },
+                textScale = int(f[8], TEXT_SCALE_RANGE),
+                animationSpeed = int(f[9], ANIMATION_SPEED_RANGE),
+                reduceMotion = opt(f[10]) { it.toBooleanStrictOrNull() },
             )
         }
     }
 }
 
-/** A base theme with a customisation applied. */
+/** A base theme with a customisation applied, for the current system dark/light state. */
 data class ResolvedTheme(
     val spec: ThemeSpec,
+    val variant: ThemeVariant,
     val palette: Palette,
-    val shapes: ShapeTokens,
-    val ambianceEnabled: Boolean,
+    /** 0–1. */
+    val glowIntensity: Float,
+    val gradientIntensity: Float,
+    val borderDp: Int,
+    val cornerDp: Int,
+    /** Card opacity over the backdrop; 1 = solid cards. */
+    val glassAlpha: Float,
+    /** Orb opacity on the backdrop (0 when there is none). */
+    val orbAlpha: Float,
+    val textScale: Float,
+    /** Multiplier for animation durations (2 = half speed). */
+    val durationScale: Float,
     val reduceMotionByUser: Boolean,
 ) {
+    val backdrop: Backdrop? get() = variant.backdrop
+
     companion object {
-        fun resolve(c: ThemeCustomization): ResolvedTheme {
+        fun resolve(c: ThemeCustomization, systemDark: Boolean = true): ResolvedTheme {
             val spec = Themes.byId(c.baseId)
-            // An accent that is not valid for this theme (e.g. after a base switch) is ignored.
-            val accent = c.accent?.takeIf { it in Themes.validAccentsFor(spec) }
-            val scale = c.cornerScale?.takeIf { it in ThemeCustomization.CORNER_SCALES } ?: 1f
+            val dark = when (c.mode ?: defaultMode(spec)) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> systemDark
+            }
+            val variant = spec.variant(dark)
+            val gradient = (c.gradient ?: ThemeCustomization.DEFAULT_GRADIENT)
+                .coerceIn(ThemeCustomization.GRADIENT_RANGE) / 100f
+            val designOrb = (if (dark) ThemeVariant.ORB_ALPHA_DARK else ThemeVariant.ORB_ALPHA_LIGHT) *
+                (0.55f + 0.45f * gradient)
+            val speed = (c.animationSpeed ?: ThemeCustomization.DEFAULT_ANIMATION_SPEED)
+                .coerceIn(ThemeCustomization.ANIMATION_SPEED_RANGE)
             return ResolvedTheme(
                 spec = spec,
-                palette = if (accent != null) Palette.from(spec.seed, accent) else spec.palette,
-                shapes = spec.shapes.scaled(scale),
-                ambianceEnabled = (c.ambianceEnabled ?: true) && spec.ambiance.kind != AmbianceKind.NONE,
+                variant = variant,
+                palette = variant.palette,
+                glowIntensity = (c.glow ?: ThemeCustomization.DEFAULT_GLOW).coerceIn(ThemeCustomization.GLOW_RANGE) / 100f,
+                gradientIntensity = gradient,
+                borderDp = (c.border ?: ThemeCustomization.DEFAULT_BORDER).coerceIn(ThemeCustomization.BORDER_RANGE),
+                cornerDp = (c.corner ?: ThemeCustomization.DEFAULT_CORNER).coerceIn(ThemeCustomization.CORNER_RANGE),
+                glassAlpha = if (variant.backdrop != null && (c.glass ?: true)) variant.glassAlpha else 1f,
+                orbAlpha = if (variant.backdrop != null) minOf(designOrb, variant.orbAlphaLimit) else 0f,
+                textScale = (c.textScale ?: ThemeCustomization.DEFAULT_TEXT_SCALE)
+                    .coerceIn(ThemeCustomization.TEXT_SCALE_RANGE) / 100f,
+                durationScale = 100f / speed,
                 reduceMotionByUser = c.reduceMotion ?: false,
             )
         }
+
+        /** "Steel Light" opens light; every other theme opens dark until the user picks a mode. */
+        fun defaultMode(spec: ThemeSpec): ThemeMode =
+            if (spec.id == Themes.STEEL_LIGHT_FIRST.id) ThemeMode.LIGHT else ThemeMode.DARK
     }
 }
 
-/**
- * Strongest opacity with which an ambiance covers an area (radial/linear fills peak
- * at up to 1.6 × intensity in Ambiance.kt). Starfield draws only 1–3 px dots, so its
- * area tint is negligible.
- */
-fun ambianceAreaAlpha(t: AmbianceTokens): Float = when (t.kind) {
-    AmbianceKind.NONE -> 0f
-    AmbianceKind.STARFIELD -> 0.05f
-    else -> minOf(1f, t.intensity * 1.6f)
-}
-
-/** WCAG AA checks for a theme's palette; used by the unit test and accent filtering. */
+/** WCAG AA checks for one theme variant; used by the unit test. */
 object ThemeChecks {
     data class Failure(val what: String, val ratio: Double, val needed: Double)
 
-    fun failures(theme: ThemeSpec, p: Palette = theme.palette): List<Failure> {
+    fun failures(variant: ThemeVariant): List<Failure> {
+        val p = variant.palette
         val out = mutableListOf<Failure>()
         fun check(what: String, fg: Long, bg: Long, need: Double = Contrast.AA_NORMAL) {
             val r = Contrast.ratio(fg, bg)
             if (r < need) out += Failure(what, r, need)
         }
-        // Body text and secondary text on every surface level.
-        val surfaces = mutableListOf<Long>().apply {
-            addAll(p.textSurfaces)
-            // Translucent cards: what text actually sits on.
-            if (theme.elevation.card == CardStyle.GLASS) {
-                val card = p.surfaceContainerHighest
-                add(ColorMath.over(card, theme.elevation.cardAlpha, p.background))
-                theme.ambiance.colors.forEach { amb ->
-                    val under = ColorMath.over(amb, ambianceAreaAlpha(theme.ambiance), p.background)
-                    add(ColorMath.over(card, theme.elevation.cardAlpha, under))
-                }
-            }
-        }
-        // Text drawn straight on the background sits on the ambiance's tint.
-        val tint = ambianceAreaAlpha(theme.ambiance)
-        theme.ambiance.colors.forEach { amb -> surfaces += ColorMath.over(amb, tint, p.background) }
-        surfaces.forEachIndexed { i, s ->
+        // Text on every opaque surface, on the backdrop (bare and orb-lit) and on glass cards.
+        variant.textSurfaces(p).forEachIndexed { i, s ->
             check("onSurface on surface#$i", p.onSurface, s)
             check("onSurfaceVariant on surface#$i", p.onSurfaceVariant, s)
             // Primary is used as text (TextButton, links, selected labels).
             check("primary text on surface#$i", p.primary, s)
             check("error text on surface#$i", p.error, s)
-            // Secondary is used for sub-headings and "custom" markers.
+            // Secondary is used for sub-headings.
             check("secondary text on surface#$i", p.secondary, s)
         }
         check("onBackground/background", p.onBackground, p.background)
@@ -335,9 +294,13 @@ object ThemeChecks {
         check("onTertiaryContainer/tertiaryContainer", p.onTertiaryContainer, p.tertiaryContainer)
         check("onError/error", p.onError, p.error)
         check("onErrorContainer/errorContainer", p.onErrorContainer, p.errorContainer)
-        // Non-text UI: focus ring and outline must be visible (WCAG 1.4.11, 3:1).
-        check("focus ring/background", theme.components.focusRingColor, p.background, Contrast.AA_LARGE_OR_UI)
-        check("focus ring/surface", theme.components.focusRingColor, p.surface, Contrast.AA_LARGE_OR_UI)
+        // Non-text UI: the focus ring must be visible (WCAG 1.4.11, 3:1).
+        check("focus ring/background", p.focusRing, p.background, Contrast.AA_LARGE_OR_UI)
+        check("focus ring/surface", p.focusRing, p.surface, Contrast.AA_LARGE_OR_UI)
+        variant.backdrop?.let {
+            check("focus ring/backdrop top", p.focusRing, it.top, Contrast.AA_LARGE_OR_UI)
+            check("focus ring/backdrop bottom", p.focusRing, it.bottom, Contrast.AA_LARGE_OR_UI)
+        }
         return out
     }
 }

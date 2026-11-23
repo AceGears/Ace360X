@@ -16,29 +16,33 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
-/** Settings → Appearance: base theme, accent, background effect, motion, corners. */
+/** Settings → Appearance: theme, dark/light, and the look adjustments from AceArcade's editor. */
 @Composable
 fun AppearanceSection() {
     val context = LocalContext.current
@@ -65,6 +69,7 @@ fun AppearanceSection() {
                         row.forEach { spec ->
                             ThemeTile(
                                 spec = spec,
+                                dark = if (spec.id == active.spec.id) active.palette.dark else ResolvedTheme.defaultMode(spec) != ThemeMode.LIGHT,
                                 selected = spec.id == active.spec.id,
                                 modifier = Modifier.weight(1f),
                             ) { scope.launch { repo.selectBase(spec.id) } }
@@ -74,59 +79,59 @@ fun AppearanceSection() {
                 }
             }
 
-            Label("Accent colour")
-            val accents = remember(active.spec.id) { Themes.validAccentsFor(active.spec) }
-            Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                (listOf<Long?>(null) + accents).chunked(6).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        row.forEach { accent ->
-                            val selected = (c.accent?.takeIf { it in accents }) == accent
-                            AccentSwatch(accent, active.spec.seed.primary, selected) {
-                                update { it.copy(accent = accent) }
-                            }
-                        }
-                    }
-                }
-            }
-            Text(
-                "Only accents that keep text readable (WCAG AA) in this theme are shown.",
-                style = MaterialTheme.typography.bodySmall,
-                color = cs.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-
-            val hasAmbiance = active.spec.ambiance.kind != AmbianceKind.NONE
-            ToggleRow(
-                title = "Background effect",
-                subtitle = if (hasAmbiance) "Decorative background on app screens. Never shown during games." else "This theme has no background effect.",
-                checked = active.ambianceEnabled,
-                enabled = hasAmbiance,
-            ) { v -> update { it.copy(ambianceEnabled = v) } }
-
-            val systemOff = remember { systemAnimationsOff(context) }
-            ToggleRow(
-                title = "Reduce motion",
-                subtitle = if (systemOff) "Animations are already off in Android settings." else "Stops animated backgrounds and shortens transitions.",
-                checked = systemOff || (c.reduceMotion ?: false),
-                enabled = !systemOff,
-            ) { v -> update { it.copy(reduceMotion = v) } }
-
-            Label("Corner style")
-            listOf(0.5f to "Sharper", 1f to "Theme default", 1.5f to "Rounder").forEach { (scale, label) ->
+            Label("Dark or light")
+            val mode = c.mode ?: ResolvedTheme.defaultMode(active.spec)
+            ThemeMode.entries.forEach { m ->
                 Row(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .selectable(selected = (c.cornerScale ?: 1f) == scale, role = Role.RadioButton) {
-                            update { it.copy(cornerScale = if (scale == 1f) null else scale) }
-                        }
+                        .selectable(selected = mode == m, role = Role.RadioButton) { update { it.copy(mode = m) } }
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RadioButton(selected = (c.cornerScale ?: 1f) == scale, onClick = null)
-                    Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
+                    RadioButton(selected = mode == m, onClick = null)
+                    Text(m.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
                 }
             }
+
+            val hasBackdrop = active.backdrop != null
+            ToggleRow(
+                title = "Glass cards",
+                subtitle = if (hasBackdrop) "See-through cards over the theme's backdrop." else "Only for the glass themes (the first five).",
+                checked = hasBackdrop && (c.glass ?: true),
+                enabled = hasBackdrop,
+            ) { v -> update { it.copy(glass = if (v) null else false) } }
+
+            IntSlider("Glow", c.glow, ThemeCustomization.DEFAULT_GLOW, ThemeCustomization.GLOW_RANGE, "%") { v -> update { it.copy(glow = v) } }
+            IntSlider("Gradient and backdrop light", c.gradient, ThemeCustomization.DEFAULT_GRADIENT, ThemeCustomization.GRADIENT_RANGE, "%") { v ->
+                update { it.copy(gradient = v) }
+            }
+            IntSlider("Corner radius", c.corner, ThemeCustomization.DEFAULT_CORNER, ThemeCustomization.CORNER_RANGE, " dp") { v ->
+                update { it.copy(corner = v) }
+            }
+            IntSlider("Card border", c.border, ThemeCustomization.DEFAULT_BORDER, ThemeCustomization.BORDER_RANGE, " dp") { v ->
+                update { it.copy(border = v) }
+            }
+            IntSlider("Text size", c.textScale, ThemeCustomization.DEFAULT_TEXT_SCALE, ThemeCustomization.TEXT_SCALE_RANGE, "%", step = 5) { v ->
+                update { it.copy(textScale = v) }
+            }
+
+            val systemOff = remember { systemAnimationsOff(context) }
+            val reduced = systemOff || (c.reduceMotion ?: false)
+            ToggleRow(
+                title = "Reduce motion",
+                subtitle = if (systemOff) "Animations are already off in Android settings." else "Turns off press and transition animations.",
+                checked = reduced,
+                enabled = !systemOff,
+            ) { v -> update { it.copy(reduceMotion = if (v) true else null) } }
+            if (!reduced) {
+                IntSlider(
+                    "Animation speed", c.animationSpeed, ThemeCustomization.DEFAULT_ANIMATION_SPEED,
+                    ThemeCustomization.ANIMATION_SPEED_RANGE, "%", step = 25,
+                ) { v -> update { it.copy(animationSpeed = v) } }
+            }
+
             TextButton(
                 onClick = { scope.launch { repo.resetCustomizations() } },
                 modifier = Modifier.padding(horizontal = 8.dp).aceFocusRing(),
@@ -143,6 +148,42 @@ private fun Label(text: String) {
         color = MaterialTheme.colorScheme.secondary,
         modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
     )
+}
+
+/**
+ * A whole-number setting stored as a diff: choosing the default value stores nothing.
+ * The value is saved when the finger lifts, so dragging doesn't write on every step.
+ */
+@Composable
+private fun IntSlider(
+    title: String,
+    stored: Int?,
+    default: Int,
+    range: IntRange,
+    unit: String,
+    step: Int = 1,
+    onChange: (Int?) -> Unit,
+) {
+    val current = stored ?: default
+    var dragging by remember(current) { mutableFloatStateOf(current.toFloat()) }
+    fun snapped(v: Float) = ((v / step).roundToInt() * step).coerceIn(range.first, range.last)
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(
+                "${snapped(dragging)}$unit",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        AceSlider(
+            value = dragging,
+            onValueChange = { dragging = it },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            onValueChangeFinished = { snapped(dragging).let { v -> onChange(if (v == default) null else v) } },
+            modifier = Modifier.semantics { contentDescription = title },
+        )
+    }
 }
 
 @Composable
@@ -163,35 +204,14 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, enabled
     }
 }
 
-/** A swatch showing [accent] (null = the theme's own primary). 48 dp touch target. */
+/** Preview of a theme drawn with that theme's own backdrop, colours and glow. */
 @Composable
-private fun AccentSwatch(accent: Long?, themePrimary: Long, selected: Boolean, onClick: () -> Unit) {
-    val ring = MaterialTheme.colorScheme.onSurface
-    val color = (accent ?: themePrimary).toColor()
-    val label = if (accent == null) "Theme default accent" else "Accent #" + java.lang.Long.toHexString(accent and 0xFFFFFF).padStart(6, '0').uppercase()
-    Box(
-        Modifier
-            .size(48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .aceFocusRing()
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            Modifier
-                .size(if (selected) 34.dp else 28.dp)
-                .then(if (selected) Modifier.border(3.dp, ring, CircleShape) else Modifier)
-                .padding(if (selected) 5.dp else 0.dp)
-                .background(color, CircleShape),
-        )
+private fun ThemeTile(spec: ThemeSpec, dark: Boolean, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val preview = remember(spec.id, dark) {
+        ResolvedTheme.resolve(ThemeCustomization(baseId = spec.id, mode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT))
     }
-}
-
-/** Preview of a theme drawn with that theme's own palette, shape and heading font. */
-@Composable
-private fun ThemeTile(spec: ThemeSpec, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val p = spec.palette
-    val shape = spec.shapes.corner(spec.shapes.mediumDp.coerceAtMost(14f))
+    val p = preview.palette
+    val shape = RoundedCornerShape(12.dp)
     val selRing = MaterialTheme.colorScheme.primary
     Column(
         modifier
@@ -206,28 +226,25 @@ private fun ThemeTile(spec: ThemeSpec, selected: Boolean, modifier: Modifier, on
             Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .background(p.background.toColor(), shape)
+                .clip(shape)
+                .aceBackdrop(preview)
                 .border(1.dp, p.outline.toColor(), shape)
                 .padding(8.dp),
         ) {
             Column {
                 Text(
-                    "Aa",
-                    style = TextStyle(
-                        fontFamily = spec.type.headingFont.toFamily(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Normal,
-                        letterSpacing = spec.type.headingLetterSpacing.sp,
-                    ),
+                    if (spec.premium) "Glass" else "Aa",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = p.onBackground.toColor(),
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.width(22.dp).height(10.dp).background(p.primary.toColor(), spec.shapes.corner(spec.shapes.smallDp.coerceAtMost(5f))))
+                    Box(Modifier.width(22.dp).height(10.dp).background(p.primary.toColor(), RoundedCornerShape(5.dp)))
                     Spacer(Modifier.width(4.dp))
-                    Box(Modifier.width(14.dp).height(10.dp).background(p.secondary.toColor(), spec.shapes.corner(spec.shapes.smallDp.coerceAtMost(5f))))
+                    Box(Modifier.width(14.dp).height(10.dp).background(p.secondary.toColor(), RoundedCornerShape(5.dp)))
                     Spacer(Modifier.width(4.dp))
-                    Box(Modifier.width(10.dp).height(10.dp).background(p.tertiary.toColor(), CircleShape))
+                    Box(Modifier.size(10.dp).background(p.glow.toColor(), CircleShape))
                 }
             }
         }

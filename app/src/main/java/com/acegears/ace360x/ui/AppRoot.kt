@@ -25,7 +25,7 @@ import com.acegears.ace360x.library.LibraryScreen
 import com.acegears.ace360x.settings.SettingsScreen
 import com.acegears.ace360x.theme.AceIcons
 import com.acegears.ace360x.theme.AmbianceBackground
-import com.acegears.ace360x.theme.LocalAceTheme
+import com.acegears.ace360x.theme.aceCardColor
 import com.acegears.ace360x.theme.LocalMotion
 import com.acegears.ace360x.theme.aceFocusRing
 import com.acegears.ace360x.theme.aceNavItemColors
@@ -45,7 +45,6 @@ private fun Tab.icon(): ImageVector = when (this) {
 fun AppRoot() {
     var tab by rememberSaveable { mutableStateOf(Tab.LIBRARY) }
     val motion = LocalMotion.current
-    val uppercase = LocalAceTheme.current.spec.type.uppercaseLabels
     AmbianceBackground {
         Scaffold(
             containerColor = Color.Transparent,
@@ -53,13 +52,13 @@ fun AppRoot() {
             // then drew black on the dark theme; use the theme's text colour explicitly.
             contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+                NavigationBar(containerColor = aceCardColor()) {
                     Tab.entries.forEach { t ->
                         NavigationBarItem(
                             selected = tab == t,
                             onClick = { tab = t },
                             icon = { Icon(t.icon(), contentDescription = null) },
-                            label = { Text(if (uppercase) t.label.uppercase() else t.label) },
+                            label = { Text(t.label) },
                             colors = aceNavItemColors(),
                             modifier = Modifier.aceFocusRing(),
                         )
