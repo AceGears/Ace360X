@@ -190,7 +190,7 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
 
 ---
 
-## Current status (2026-11-16) — details in `docs/PROGRESS.md`
+## Current status (2026-11-23) — details in `docs/PROGRESS.md`
 - Complete: —
 - Implemented (unverified on device): Phase 2 app; Phase 3 in progress — Xenia Canary core
   (incl. a64 JIT, Vulkan GPU, kernel, VFS, FFmpeg XMA) compiles for arm64-v8a in CI with 4
@@ -215,10 +215,17 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   (`ThemeTest`). Visual review screenshots (Phase 9) need a device.
 - Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
   sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).
-- Compatibility DB: `compat/compat.json` exists and is empty (every title Untested);
+- Compatibility DB: `compat/compat.json` has one entry (555307E5, In-game); other titles Untested;
   entries need evidence and are validated in CI (`scripts/validate-compat.py`). The app
   does not read it yet (no title-ID extraction).
 - Verified on device (2026-11-21, Samsung SM8850/Adreno 840, Android 17): app runs; a retail
   disc image loads and its code executes on the a64 JIT with kernel/VFS/audio/GPU initialised
   — `docs/reports/device/2026-11-21-first-launch.md`. Frames/menu not yet observed.
-- Next: a longer on-device run (≥ 60 s) to see whether frames are drawn; fix what it shows.
+- Verified on device (2026-11-23, same phone, build 7dcdd66): first title renders — title
+  screen and gameplay of 555307E5 drawn correctly after patch 0021 (gl_SampleMask was
+  declared but unwritten in translated pixel shaders; the Adreno driver dropped every
+  fragment). Compat entry: In-game. Speed/FPS not measured. Phase 4 still needs the
+  10-minute audio test.
+- Next: measure frame pacing and speed on device (no numbers exist yet); presenter stops
+  painting after swapchain recreation; confirm the "ended unexpectedly" banner fix; offer
+  patches 0010–0012 and 0021 upstream.

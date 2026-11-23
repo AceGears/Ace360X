@@ -195,3 +195,14 @@ menu) and whether there is sound, then quit and share diagnostics.
   Undefined by the Vulkan spec; hypothesis: the Adreno driver uses zero coverage.
 - Patch 0021 writes full coverage at the start of every such shader. Lavapipe output
   unchanged. **Not yet confirmed on the phone.**
+
+## Result with patch 0021 (2026-11-23, build 7dcdd66)
+
+- The tester sent two screenshots from a normal game start: the title screen and a fight in
+  progress, both drawn correctly, touch controls on top. The thermal notice was visible in
+  the second one.
+- This confirms the root cause: `gl_SampleMask` declared but not written by translated pixel
+  shaders, treated as zero coverage by the Adreno 840 driver.
+- Not measured: frame rate, emulation speed, sustained behaviour. First compat entry added
+  (`compat/compat.json`, status In-game).
+

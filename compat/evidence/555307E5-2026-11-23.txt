@@ -1,0 +1,18 @@
+Title: Naruto: Rise of a Ninja (Europe disc image), title ID 555307E5
+Device: Samsung SM-S948U1 (Snapdragon SM8850, Adreno 840), Android 17
+Driver: Qualcomm proprietary Vulkan driver, build 07/01/26, API 1.4.295
+Build: 7dcdd66 (debug APK from CI, patches 0001-0022)
+Date: 2026-11-23
+Tester: repository owner (AceGears), reported in the development session
+
+Observed (two screenshots sent by the tester; not stored here because they show game artwork):
+1. Title screen drawn correctly ("PRESS START BUTTON", legal line at the bottom).
+2. A fight in progress (Naruto vs Sasuke): 3D scene, characters, HUD with health bars and
+   timer all drawn; on-screen touch controls visible; the app's "Phone is getting warm"
+   thermal notice was showing.
+Audio had been reported as audible on earlier builds.
+
+Not measured or checked: frame rate, emulation speed, audio quality, how long the game
+runs, save/load, later parts of the game. No performance claim is made.
+Before build 7dcdd66 the picture was black on this device (see
+docs/reports/device/2026-11-21-first-launch.md, patch 0021).

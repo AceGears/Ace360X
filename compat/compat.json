@@ -1,4 +1,17 @@
 {
   "schema": 1,
-  "entries": []
+  "entries": [
+    {
+      "title_id": "555307E5",
+      "name": "Naruto: Rise of a Ninja",
+      "status": "In-game",
+      "device": "Samsung SM-S948U1 (Snapdragon SM8850, Adreno 840)",
+      "driver": "Qualcomm 07/01/26, Vulkan 1.4.295",
+      "build": "7dcdd66",
+      "date": "2026-11-23",
+      "tester": "AceGears",
+      "notes": "Title screen and a fight render correctly with touch controls. Speed, audio quality and stability over time not measured; thermal notice appeared during play.",
+      "evidence": "compat/evidence/555307E5-2026-11-23.txt"
+    }
+  ]
 }

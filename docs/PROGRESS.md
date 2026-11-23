@@ -213,3 +213,17 @@
 - False "ended unexpectedly" banner after a normal quit (marker written after upstream's
   quick_exit). Section headings drawn black on themed screens. Out-of-date Library notice.
 - Public `latest-debug` pre-release so the APK downloads without a GitHub account.
+
+## Session 2026-11-22/23 — black picture on the Adreno 840 found and fixed
+
+- Method: GPU frame captures replayed on Mesa lavapipe (reference) and on the phone, with
+  diagnostic patches 0013–0020 halving the pipeline each round (presentation → readback →
+  resolve → rasterization → pixel stage).
+- Root cause (patch 0021): translated pixel shaders declared `gl_SampleMask` without writing
+  it; the Qualcomm driver dropped every fragment. Fix: write full coverage at shader start.
+- **Verified on device** (build 7dcdd66, screenshots from the tester): title screen and
+  gameplay of 555307E5 render. Evidence: `compat/evidence/555307E5-2026-11-23.txt`.
+- Not tested: frame rate/speed (no measurements exist), sustained runs, other titles, other
+  devices. Controller/touch input during gameplay was not explicitly reported.
+- Open: presenter stops painting after swapchain recreation (seen once); banner fix
+  unconfirmed; diagnostic cvars from 0016–0020 remain in the build, off by default.
