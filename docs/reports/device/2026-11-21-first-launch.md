@@ -171,3 +171,14 @@ menu) and whether there is sound, then quit and share diagnostics.
 - Patch 0019: constant-magenta pixel shader substitute and blend-off pipelines to split
   those two. Lavapipe reference values are in `TraceReplayActivity.VARIANTS`. Not yet run on
   the phone.
+
+## Bisect step 4 result (2026-11-23, build 2a461ed)
+
+- Constant-magenta pixel shader substitute: **29,881 of 60,433** on the phone, and 44,821
+  with blending off + permissive pipelines — both identical to lavapipe. Default and
+  blend-off alone: 0.
+- So vertex shaders, vertex fetch, viewport/scissor and rasterization of guest geometry
+  work on the Adreno 840. The loss is inside the translated pixel shaders (or their inputs:
+  interpolators, textures, constants), and blending/write masks alone do not explain it.
+- Patch 0020 splits the pixel stage (output override after guest code, no discard, white
+  textures). Not yet run on the phone.

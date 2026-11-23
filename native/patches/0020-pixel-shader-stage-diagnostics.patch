@@ -1,0 +1,171 @@
+diff --git a/src/xenia/gpu/spirv_shader_translator.cc b/src/xenia/gpu/spirv_shader_translator.cc
+index d057a07..103f679 100644
+--- a/src/xenia/gpu/spirv_shader_translator.cc
++++ b/src/xenia/gpu/spirv_shader_translator.cc
+@@ -30,6 +30,22 @@ DEFINE_bool(
+     "capability.",
+     "GPU");
+ 
++// Ace360X (patch 0020): device graphics diagnostics, off by default.
++DEFINE_int32(ace_ps_debug_output, 0,
++             "Diagnostics: override what translated pixel shaders write to "
++             "color target 0 after the guest code has run. 1 = opaque "
++             "magenta, 2 = fract(abs(interpolator 0.xy)) with blue 0.25 and "
++             "alpha 1, 3 = guest color with alpha forced to 1.",
++             "GPU");
++DEFINE_bool(ace_ps_debug_no_kill, false,
++            "Diagnostics: translated pixel shaders never discard pixels "
++            "(guest kill instructions and the alpha test).",
++            "GPU");
++DEFINE_bool(ace_ps_debug_white_textures, false,
++            "Diagnostics: texture fetches in translated shaders return 1.0 in "
++            "all components instead of the sampled value.",
++            "GPU");
++
+ namespace xe {
+ namespace gpu {
+ 
+diff --git a/src/xenia/gpu/spirv_shader_translator_alu.cc b/src/xenia/gpu/spirv_shader_translator_alu.cc
+index 1abc600..df3b050 100644
+--- a/src/xenia/gpu/spirv_shader_translator_alu.cc
++++ b/src/xenia/gpu/spirv_shader_translator_alu.cc
+@@ -19,6 +19,10 @@
+ #include "xenia/gpu/gpu_flags.h"
+ #include "xenia/gpu/spirv_compatibility.h"
+ 
++DECLARE_int32(ace_ps_debug_output);
++DECLARE_bool(ace_ps_debug_no_kill);
++DECLARE_bool(ace_ps_debug_white_textures);
++
+ namespace xe {
+ namespace gpu {
+ 
+@@ -51,7 +55,8 @@ void SpirvShaderTranslator::KillPixel(
+       builder_->createStore(builder_->makeBoolConstant(true),
+                             var_main_kill_pixel_);
+     }
+-    if (features_.demote_to_helper_invocation) {
++    if (features_.demote_to_helper_invocation &&
++        !cvars::ace_ps_debug_no_kill) {
+       builder_->createNoResultOp(spv::OpDemoteToHelperInvocationEXT);
+     }
+   }
+diff --git a/src/xenia/gpu/spirv_shader_translator_fetch.cc b/src/xenia/gpu/spirv_shader_translator_fetch.cc
+index 1c256b0..29dee08 100644
+--- a/src/xenia/gpu/spirv_shader_translator_fetch.cc
++++ b/src/xenia/gpu/spirv_shader_translator_fetch.cc
+@@ -20,6 +20,10 @@
+ #include "xenia/gpu/render_target_cache.h"
+ #include "xenia/gpu/spirv_compatibility.h"
+ 
++DECLARE_int32(ace_ps_debug_output);
++DECLARE_bool(ace_ps_debug_no_kill);
++DECLARE_bool(ace_ps_debug_white_textures);
++
+ namespace xe {
+ namespace gpu {
+ 
+@@ -2943,6 +2947,10 @@ void SpirvShaderTranslator::ProcessTextureFetchInstruction(
+     xe::bit_scan_forward(used_result_components, &result_component_index);
+     result_vector = result[result_component_index];
+   }
++  if (cvars::ace_ps_debug_white_textures &&
++      instr.opcode == ucode::FetchOpcode::kTextureFetch) {
++    result_vector = const_float_vectors_1_[used_result_component_count - 1];
++  }
+   StoreResult(instr.result, result_vector);
+ }
+ 
+diff --git a/src/xenia/gpu/spirv_shader_translator_rb.cc b/src/xenia/gpu/spirv_shader_translator_rb.cc
+index ff35016..49bc468 100644
+--- a/src/xenia/gpu/spirv_shader_translator_rb.cc
++++ b/src/xenia/gpu/spirv_shader_translator_rb.cc
+@@ -19,6 +19,12 @@
+ #include "xenia/gpu/spirv_compatibility.h"
+ #include "xenia/gpu/xenos_zpd_report.h"
+ 
++#include "xenia/base/cvar.h"
++
++DECLARE_int32(ace_ps_debug_output);
++DECLARE_bool(ace_ps_debug_no_kill);
++DECLARE_bool(ace_ps_debug_white_textures);
++
+ namespace xe {
+ namespace gpu {
+ 
+@@ -442,7 +448,59 @@ void SpirvShaderTranslator::CompleteFragmentShaderInMain() {
+ 
+   bool fsi_pixel_potentially_killed = false;
+ 
+-  if (current_shader().kills_pixels()) {
++  // Ace360X diagnostics (patch 0020).
++  if (cvars::ace_ps_debug_output && !edram_fragment_shader_interlock_ &&
++      output_or_var_fragment_data_[0] != spv::NoResult) {
++    spv::Id ace_color = spv::NoResult;
++    switch (cvars::ace_ps_debug_output) {
++      case 1: {
++        id_vector_temp_.clear();
++        id_vector_temp_.push_back(const_float_1_);
++        id_vector_temp_.push_back(const_float_0_);
++        id_vector_temp_.push_back(const_float_1_);
++        id_vector_temp_.push_back(const_float_1_);
++        ace_color =
++            builder_->makeCompositeConstant(type_float4_, id_vector_temp_);
++      } break;
++      case 2: {
++        spv::Id xy[2] = {const_float_0_, const_float_0_};
++        if (input_output_interpolators_[0] != spv::NoResult) {
++          spv::Id interpolator = builder_->createLoad(
++              input_output_interpolators_[0], spv::NoPrecision);
++          for (uint32_t i = 0; i < 2; ++i) {
++            xy[i] = builder_->createUnaryBuiltinCall(
++                type_float_, ext_inst_glsl_std_450_, GLSLstd450Fract,
++                builder_->createUnaryBuiltinCall(
++                    type_float_, ext_inst_glsl_std_450_, GLSLstd450FAbs,
++                    builder_->createCompositeExtract(interpolator, type_float_,
++                                                     i)));
++          }
++        }
++        id_vector_temp_.clear();
++        id_vector_temp_.push_back(xy[0]);
++        id_vector_temp_.push_back(xy[1]);
++        id_vector_temp_.push_back(builder_->makeFloatConstant(0.25f));
++        id_vector_temp_.push_back(const_float_1_);
++        ace_color =
++            builder_->createCompositeConstruct(type_float4_, id_vector_temp_);
++      } break;
++      case 3: {
++        ace_color = builder_->createCompositeInsert(
++            const_float_1_,
++            builder_->createLoad(output_or_var_fragment_data_[0],
++                                 spv::NoPrecision),
++            type_float4_, 3);
++      } break;
++      default:
++        break;
++    }
++    if (ace_color != spv::NoResult) {
++      builder_->createStore(ace_color, output_or_var_fragment_data_[0]);
++    }
++  }
++
++  if (current_shader().kills_pixels() &&
++      (edram_fragment_shader_interlock_ || !cvars::ace_ps_debug_no_kill)) {
+     if (edram_fragment_shader_interlock_) {
+       fsi_pixel_potentially_killed = true;
+       if (!features_.demote_to_helper_invocation) {
+@@ -615,9 +673,11 @@ void SpirvShaderTranslator::CompleteFragmentShaderInMain() {
+         } else {
+           // TODO(Triang3l): Use OpTerminateInvocation when SPIR-V 1.6 is
+           // targeted.
+-          builder_->createNoResultOp(spv::OpKill);
+-          // OpKill terminates the block.
+-          branch_to_alpha_test_kill_merge = false;
++          if (!cvars::ace_ps_debug_no_kill) {
++            builder_->createNoResultOp(spv::OpKill);
++            // OpKill terminates the block.
++            branch_to_alpha_test_kill_merge = false;
++          }
+         }
+         alpha_test_kill_if.makeEndIf(branch_to_alpha_test_kill_merge);
+       }

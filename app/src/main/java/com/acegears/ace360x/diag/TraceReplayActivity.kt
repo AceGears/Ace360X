@@ -145,25 +145,23 @@ class TraceReplayActivity : ComponentActivity() {
     companion object {
         /** Variants to compare; each changes one GPU path that differs between drivers. */
         private val STATS = listOf("ace_swap_stats" to "true", "readback_resolve" to "\"full\"")
+        private val NO_KILL = "ace_ps_debug_no_kill" to "true"
+        private val NO_BLEND = "ace_pipeline_debug_no_blend" to "true"
+
         /**
-         * Checked on Mesa lavapipe with the frame-900 capture (non-zero bytes of 60,433):
-         * 1 → 44,576 (title screen); 2 → 29,881; 3 → 10,957; 4 → 44,821 (all magenta).
+         * Pixel-shader stage split (patch 0020). Mesa lavapipe reference with the frame-900
+         * capture, non-zero bytes of 60,433: 1 → 29,881; 2 → 44,740; 3 → 8,526; 4 → 44,576;
+         * 5 → 44,821; 6 → 44,821; 7 → 59,761; 8 → 59,680.
          */
         val VARIANTS = listOf(
-            Variant("1 Default", STATS),
-            Variant(
-                "2 Every game pixel shader replaced by plain magenta",
-                STATS + ("ace_ps_debug_solid" to "true"),
-            ),
-            Variant(
-                "3 Blending off, all colour channels writable",
-                STATS + ("ace_pipeline_debug_no_blend" to "true"),
-            ),
-            Variant(
-                "4 Magenta shader + blending off + no culling/depth/stencil rejection",
-                STATS + ("ace_ps_debug_solid" to "true") + ("ace_pipeline_debug_no_blend" to "true") +
-                    ("ace_pipeline_debug_permissive" to "true"),
-            ),
+            Variant("1 Game shader runs, then writes magenta", STATS + ("ace_ps_debug_output" to "1")),
+            Variant("2 Game shader runs, then writes its first input as colour", STATS + ("ace_ps_debug_output" to "2")),
+            Variant("3 Game colour with alpha forced to 1", STATS + ("ace_ps_debug_output" to "3")),
+            Variant("4 Pixels are never discarded", STATS + NO_KILL),
+            Variant("5 Textures read as white", STATS + ("ace_ps_debug_white_textures" to "true")),
+            Variant("6 Like 1, no discard, no blending", STATS + ("ace_ps_debug_output" to "1") + NO_KILL + NO_BLEND),
+            Variant("7 Like 5, no discard, no blending", STATS + ("ace_ps_debug_white_textures" to "true") + NO_KILL + NO_BLEND),
+            Variant("8 Like 2, no discard, no blending", STATS + ("ace_ps_debug_output" to "2") + NO_KILL + NO_BLEND),
         )
     }
 }
