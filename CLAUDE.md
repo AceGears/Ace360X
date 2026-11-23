@@ -226,6 +226,10 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   declared but unwritten in translated pixel shaders; the Adreno driver dropped every
   fragment). Compat entry: In-game. Speed/FPS not measured. Phase 4 still needs the
   10-minute audio test.
-- Next: measure frame pacing and speed on device (no numbers exist yet); presenter stops
+- Implemented (unverified on device): in-game performance readout (Settings → Advanced):
+  guest-swap FPS, 1 % low, frame-time stdev, input→guest delivery time (patch 0023,
+  `emu/PerfStats.kt`). Emulation speed % is not measured. Tester reports slight input lag
+  with touch controls (2026-11-23); cause not yet established.
+- Next: get numbers from the readout on device (none exist yet), then act on them; presenter stops
   painting after swapchain recreation; confirm the "ended unexpectedly" banner fix; offer
   patches 0010–0012 and 0021 upstream.

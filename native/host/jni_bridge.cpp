@@ -16,6 +16,7 @@
 #include "core_selftest.h"
 #include "trace_replay.h"
 #include "saf_tree_provider.h"
+#include "xenia/gpu/ace_frame_stats.h"
 #endif
 
 #define LOG_TAG "Ace360XNative"
@@ -187,6 +188,40 @@ Java_com_acegears_ace360x_core_NativeBridge_nativeGetPadVibration(JNIEnv* /*env*
 #else
   (void)user;
   return 0;
+#endif
+}
+
+// Performance sample since the previous call, as a long[]:
+// [0] input changes read by the game, [1] total delivery time (us), [2] longest
+// delivery (us), [3] controller reads by the game, [4..] intervals between
+// finished game frames (us), oldest first. Null if the core isn't in this build.
+extern "C" JNIEXPORT jlongArray JNICALL
+Java_com_acegears_ace360x_core_NativeBridge_nativeDrainPerf(JNIEnv* env, jobject /*thiz*/) {
+#if ACE_WITH_XENIA
+  try {
+    constexpr size_t kHeader = 4;
+    uint32_t intervals[xe::gpu::ace::FrameStats::kCapacity];
+    size_t count = xe::gpu::ace::g_frame_stats.Drain(intervals, xe::gpu::ace::FrameStats::kCapacity);
+    ace360x::host::InputStats input = ace360x::host::DrainInputStats();
+    jlong values[kHeader + xe::gpu::ace::FrameStats::kCapacity];
+    values[0] = static_cast<jlong>(input.changes_delivered);
+    values[1] = static_cast<jlong>(input.delivery_sum_us);
+    values[2] = static_cast<jlong>(input.delivery_max_us);
+    values[3] = static_cast<jlong>(input.guest_polls);
+    for (size_t i = 0; i < count; ++i) values[kHeader + i] = static_cast<jlong>(intervals[i]);
+    jlongArray result = env->NewLongArray(static_cast<jsize>(kHeader + count));
+    if (!result) return nullptr;
+    env->SetLongArrayRegion(result, 0, static_cast<jsize>(kHeader + count), values);
+    return result;
+  } catch (const std::exception& e) {
+    LOGE("nativeDrainPerf: %s", e.what());
+  } catch (...) {
+    LOGE("nativeDrainPerf: unknown exception");
+  }
+  return nullptr;
+#else
+  (void)env;
+  return nullptr;
 #endif
 }
 

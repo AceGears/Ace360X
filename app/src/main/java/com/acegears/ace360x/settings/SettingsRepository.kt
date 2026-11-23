@@ -27,6 +27,7 @@ class SettingsRepository(private val context: Context) {
         val aspect = booleanPreferencesKey("keep_aspect")
         val mute = booleanPreferencesKey("mute")
         val vsync = booleanPreferencesKey("guest_vsync")
+        val perfStats = booleanPreferencesKey("show_perf_stats")
         val touchOpacity = floatPreferencesKey("touch_opacity")
         val touchScale = floatPreferencesKey("touch_scale")
         val touchDefault = stringPreferencesKey("touch_default")
@@ -47,6 +48,7 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.aspect] = s.keepAspectRatio
             prefs[Keys.mute] = s.mute
             prefs[Keys.vsync] = s.guestVsync
+            prefs[Keys.perfStats] = s.showPerfStats
             prefs[Keys.touchOpacity] = s.touchOpacity
             prefs[Keys.touchScale] = s.touchScale
             prefs[Keys.touchDefault] = s.touchDefault.name
@@ -68,6 +70,7 @@ class SettingsRepository(private val context: Context) {
             keepAspectRatio = p[Keys.aspect] ?: d.keepAspectRatio,
             mute = p[Keys.mute] ?: d.mute,
             guestVsync = p[Keys.vsync] ?: d.guestVsync,
+            showPerfStats = p[Keys.perfStats] ?: d.showPerfStats,
             touchOpacity = (p[Keys.touchOpacity] ?: d.touchOpacity).coerceIn(EmulatorSettings.MIN_TOUCH_OPACITY, 1f),
             touchScale = (p[Keys.touchScale] ?: d.touchScale)
                 .coerceIn(EmulatorSettings.MIN_TOUCH_SCALE, EmulatorSettings.MAX_TOUCH_SCALE),

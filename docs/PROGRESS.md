@@ -227,3 +227,8 @@
   devices. Controller/touch input during gameplay was not explicitly reported.
 - Open: presenter stops painting after swapchain recreation (seen once); banner fix
   unconfirmed; diagnostic cvars from 0016–0020 remain in the build, off by default.
+- Tester feedback after the fix: "input controls have a slight lag". Code review of the
+  touch → JNI → guest path found no queueing on our side, so the cause is not established.
+  Added a measurement instead of guessing: in-game readout of guest-swap FPS, 1 % low,
+  frame-time stdev and input→guest delivery time (patch 0023, `emu/PerfStats.kt`, JVM tests).
+  **Not yet run on a device; no performance numbers exist.**

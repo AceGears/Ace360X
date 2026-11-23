@@ -81,6 +81,13 @@ object NativeBridge {
         return (v ushr 16) to (v and 0xFFFF)
     }
 
+    /**
+     * Raw performance sample since the previous call (see nativeDrainPerf in jni_bridge.cpp),
+     * or null when there is no core. Call from one place only, about once a second.
+     */
+    fun drainPerf(): LongArray? = if (hasCore) nativeDrainPerf() else null
+
+    private external fun nativeDrainPerf(): LongArray?
     private external fun nativeSetPadState(
         user: Int, connected: Boolean, buttons: Int, lt: Int, rt: Int, lx: Int, ly: Int, rx: Int, ry: Int,
     )

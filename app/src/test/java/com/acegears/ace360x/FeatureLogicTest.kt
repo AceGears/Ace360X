@@ -157,3 +157,44 @@ class GameOverridesTest {
         assertEquals(com.acegears.ace360x.settings.GameOverrides(mute = true), mixed)
     }
 }
+
+class PerfStatsTest {
+    private fun raw(delivered: Long, sumUs: Long, maxUs: Long, polls: Long, vararg intervals: Long) =
+        longArrayOf(delivered, sumUs, maxUs, polls, *intervals)
+
+    @org.junit.Test
+    fun steadyThirtyFps() {
+        val s = com.acegears.ace360x.emu.PerfStats.summarize(
+            raw(2, 20_000, 15_000, 60, *LongArray(30) { 33_333L }), ArrayDeque(),
+        )
+        org.junit.Assert.assertEquals(30.0, s.avgFps!!, 0.01)
+        org.junit.Assert.assertEquals(30.0, s.low1Fps!!, 0.01)
+        org.junit.Assert.assertEquals(0.0, s.frameTimeStdevMs!!, 0.001)
+        org.junit.Assert.assertEquals(10.0, s.inputAvgMs!!, 0.001)
+        org.junit.Assert.assertEquals(15.0, s.inputMaxMs!!, 0.001)
+        org.junit.Assert.assertEquals(60.0, s.pollsPerSecond!!, 0.1)
+    }
+
+    @org.junit.Test
+    fun oneSlowFrameShowsInTheLowAndStdev() {
+        val intervals = LongArray(100) { 20_000L }.also { it[50] = 100_000L }
+        val s = com.acegears.ace360x.emu.PerfStats.summarize(raw(0, 0, 0, 0, *intervals), ArrayDeque())
+        org.junit.Assert.assertEquals(1_000_000.0 / 20_800.0, s.avgFps!!, 0.01)
+        org.junit.Assert.assertEquals(10.0, s.low1Fps!!, 0.01)
+        org.junit.Assert.assertTrue(s.frameTimeStdevMs!! > 7.0)
+        org.junit.Assert.assertNull(s.inputAvgMs)
+    }
+
+    @org.junit.Test
+    fun noFramesYetAndHistoryIsBounded() {
+        val history = ArrayDeque<Long>()
+        val empty = com.acegears.ace360x.emu.PerfStats.summarize(raw(0, 0, 0, 0), history)
+        org.junit.Assert.assertNull(empty.avgFps)
+        org.junit.Assert.assertEquals("No frames from the game yet", empty.line())
+        repeat(5) {
+            com.acegears.ace360x.emu.PerfStats.summarize(raw(0, 0, 0, 0, *LongArray(256) { 16_667L }), history)
+        }
+        org.junit.Assert.assertEquals(com.acegears.ace360x.emu.PerfStats.WINDOW, history.size)
+        org.junit.Assert.assertNull(com.acegears.ace360x.emu.PerfStats.summarize(longArrayOf(1), ArrayDeque()).avgFps)
+    }
+}

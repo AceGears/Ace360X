@@ -168,6 +168,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             item {
                 Section("Advanced") {
                     SwitchRow(
+                        "Show performance numbers in game",
+                        "Measured frames per second from the game itself (average, slowest 1 %, " +
+                            "steadiness) and how long a touch takes to reach the game.",
+                        settings.showPerfStats,
+                    ) { v -> update { it.copy(showPerfStats = v) } }
+                    SwitchRow(
                         "Guest VSync (60 Hz pacing)",
                         "Xenia uses this to pace the game's own frame timing. Turning it off can make " +
                             "games run too fast or behave incorrectly. Leave on unless you know you need it.",

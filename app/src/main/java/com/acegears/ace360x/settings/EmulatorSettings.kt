@@ -19,6 +19,8 @@ data class EmulatorSettings(
      * it off can make games run too fast. Advanced, off-by-warning.
      */
     val guestVsync: Boolean = true,
+    /** Show measured FPS and input delivery time over the game (our overlay, no cvar). */
+    val showPerfStats: Boolean = false,
     val touchOpacity: Float = 0.75f,
     val touchScale: Float = 1.0f,
     val touchDefault: TouchDefault = TouchDefault.AUTO,

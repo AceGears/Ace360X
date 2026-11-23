@@ -28,6 +28,15 @@ struct PadState {
 
 // Thread-safe; called from the Android UI thread.
 void SetPadState(int user_index, const PadState& state);
+// Input delivery measurement (CLAUDE.md §7: input -> guest delivery < 1 frame).
+struct InputStats {
+  uint64_t changes_delivered = 0;  // input changes the game has read since the last drain
+  uint64_t delivery_sum_us = 0;    // total time from a change to the game's next read
+  uint64_t delivery_max_us = 0;
+  uint64_t guest_polls = 0;        // controller state reads by the game
+};
+// Returns the statistics gathered since the previous call and resets them.
+InputStats DrainInputStats();
 // Last rumble request from the game for a pad, 0..65535 per motor.
 void GetPadVibration(int user_index, uint16_t* left, uint16_t* right);
 

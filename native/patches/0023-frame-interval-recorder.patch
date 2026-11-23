@@ -1,0 +1,111 @@
+diff --git a/src/xenia/gpu/ace_frame_stats.h b/src/xenia/gpu/ace_frame_stats.h
+new file mode 100644
+index 0000000..a1b1015
+--- /dev/null
++++ b/src/xenia/gpu/ace_frame_stats.h
+@@ -0,0 +1,69 @@
++// Ace360X (patch 0023): guest frame interval recorder for on-device
++// performance measurement. Header-only so no build file changes are needed.
++#ifndef XENIA_GPU_ACE_FRAME_STATS_H_
++#define XENIA_GPU_ACE_FRAME_STATS_H_
++
++#include <array>
++#include <chrono>
++#include <cstddef>
++#include <cstdint>
++#include <mutex>
++
++namespace xe {
++namespace gpu {
++namespace ace {
++
++// Intervals between consecutive guest swaps (frames the game finished), in
++// microseconds. Written by the GPU command processor thread, drained by the
++// host UI about once a second. Holds a little over 4 s at 60 swaps/s; if the
++// reader is slower, the oldest intervals are overwritten.
++class FrameStats {
++ public:
++  static constexpr size_t kCapacity = 256;
++
++  void RecordSwap() {
++    uint64_t now_us = uint64_t(
++        std::chrono::duration_cast<std::chrono::microseconds>(
++            std::chrono::steady_clock::now().time_since_epoch())
++            .count());
++    std::lock_guard<std::mutex> lock(mutex_);
++    if (last_swap_us_) {
++      uint64_t interval = now_us - last_swap_us_;
++      intervals_[(first_ + count_) % kCapacity] =
++          interval > UINT32_MAX ? UINT32_MAX : uint32_t(interval);
++      if (count_ < kCapacity) {
++        ++count_;
++      } else {
++        first_ = (first_ + 1) % kCapacity;
++      }
++    }
++    last_swap_us_ = now_us;
++  }
++
++  // Copies up to max_count pending intervals (oldest first) and clears them.
++  size_t Drain(uint32_t* out, size_t max_count) {
++    std::lock_guard<std::mutex> lock(mutex_);
++    size_t n = count_ < max_count ? count_ : max_count;
++    for (size_t i = 0; i < n; ++i) {
++      out[i] = intervals_[(first_ + i) % kCapacity];
++    }
++    first_ = 0;
++    count_ = 0;
++    return n;
++  }
++
++ private:
++  std::mutex mutex_;
++  std::array<uint32_t, kCapacity> intervals_{};
++  size_t first_ = 0;
++  size_t count_ = 0;
++  uint64_t last_swap_us_ = 0;
++};
++
++inline FrameStats g_frame_stats;
++
++}  // namespace ace
++}  // namespace gpu
++}  // namespace xe
++
++#endif  // XENIA_GPU_ACE_FRAME_STATS_H_
+diff --git a/src/xenia/gpu/d3d12/d3d12_command_processor.cc b/src/xenia/gpu/d3d12/d3d12_command_processor.cc
+index 3679884..f92d5e0 100644
+--- a/src/xenia/gpu/d3d12/d3d12_command_processor.cc
++++ b/src/xenia/gpu/d3d12/d3d12_command_processor.cc
+@@ -11,6 +11,7 @@
+ #include <cstring>
+ #include "xenia/apu/audio_system.h"
+ #include "xenia/base/clock.h"
++#include "xenia/gpu/ace_frame_stats.h"
+ #include "xenia/base/assert.h"
+ #include "xenia/base/byte_order.h"
+ #include "xenia/base/cvar.h"
+diff --git a/src/xenia/gpu/pm4_command_processor_implement.h b/src/xenia/gpu/pm4_command_processor_implement.h
+index 5a88423..d518e57 100644
+--- a/src/xenia/gpu/pm4_command_processor_implement.h
++++ b/src/xenia/gpu/pm4_command_processor_implement.h
+@@ -692,6 +692,7 @@ bool COMMAND_PROCESSOR::ExecutePacketType3_XE_SWAP(uint32_t packet,
+                                frontbuffer_height);
+ 
+   ++counter_;
++  xe::gpu::ace::g_frame_stats.RecordSwap();
+ 
+   {
+     static uint64_t swaps_total = 0;
+diff --git a/src/xenia/gpu/vulkan/vulkan_command_processor.cc b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+index 3fca637..d3adc47 100644
+--- a/src/xenia/gpu/vulkan/vulkan_command_processor.cc
++++ b/src/xenia/gpu/vulkan/vulkan_command_processor.cc
+@@ -14,6 +14,7 @@
+ 
+ #include "xenia/apu/audio_system.h"
+ #include "xenia/base/clock.h"
++#include "xenia/gpu/ace_frame_stats.h"
+ #include "xenia/base/assert.h"
+ #include "xenia/base/byte_order.h"
+ #include "xenia/base/logging.h"

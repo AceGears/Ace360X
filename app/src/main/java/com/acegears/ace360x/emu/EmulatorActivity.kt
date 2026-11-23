@@ -61,6 +61,7 @@ class EmulatorActivity : WindowedAppActivity() {
         private const val EXTRA_STATS_KEY = "com.acegears.ace360x.STATS_KEY"
 
         private const val EXTRA_TOUCH_OPACITY = "com.acegears.ace360x.TOUCH_OPACITY"
+        private const val EXTRA_PERF_STATS = "com.acegears.ace360x.PERF_STATS"
         private const val EXTRA_TOUCH_SCALE = "com.acegears.ace360x.TOUCH_SCALE"
         private const val EXTRA_TOUCH_DEFAULT = "com.acegears.ace360x.TOUCH_DEFAULT"
         private const val EXTRA_DEAD_ZONE = "com.acegears.ace360x.DEAD_ZONE"
@@ -108,6 +109,7 @@ class EmulatorActivity : WindowedAppActivity() {
                 .putExtra(EXTRA_GAME_URI, target)
                 .putExtra(EXTRA_STATS_KEY, statsKey)
                 .putExtra(EXTRA_GAME_NAME, displayName)
+                .putExtra(EXTRA_PERF_STATS, settings.showPerfStats)
                 .putExtra(EXTRA_TOUCH_OPACITY, settings.touchOpacity)
                 .putExtra(EXTRA_TOUCH_SCALE, settings.touchScale)
                 .putExtra(EXTRA_TOUCH_DEFAULT, settings.touchDefault.name)
@@ -161,6 +163,7 @@ class EmulatorActivity : WindowedAppActivity() {
         statsKey = intent.getStringExtra(EXTRA_STATS_KEY) ?: gameUri
         statsKey?.let { PlayStats.markPlayed(this, it) }
 
+        val showPerf = intent.getBooleanExtra(EXTRA_PERF_STATS, false)
         val touchOpacity = intent.getFloatExtra(EXTRA_TOUCH_OPACITY, 0.75f)
         val touchScale = intent.getFloatExtra(EXTRA_TOUCH_SCALE, 1f)
         touchVisible.value = when (intent.getStringExtra(EXTRA_TOUCH_DEFAULT)) {
@@ -193,6 +196,7 @@ class EmulatorActivity : WindowedAppActivity() {
               AceTheme(theme) {
                 Box(Modifier.fillMaxSize()) {
                     if (touchVisible.value) TouchControlsOverlay(touchState, touchOpacity, touchScale)
+                    if (showPerf) PerfReadout(Modifier.align(Alignment.TopCenter).padding(top = 44.dp))
                     ThermalNotice(thermalStatus.intValue, Modifier.align(Alignment.TopStart).padding(top = 48.dp, start = 12.dp))
                     if (confirmExit.value) {
                         AceDialog(
