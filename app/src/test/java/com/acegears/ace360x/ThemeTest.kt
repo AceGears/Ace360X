@@ -91,6 +91,10 @@ class ThemeTest {
         assertFalse(dark(ThemeCustomization(baseId = Themes.PLASMA.id, mode = ThemeMode.LIGHT), system = true))
         assertTrue(dark(ThemeCustomization(baseId = Themes.PLASMA.id, mode = ThemeMode.SYSTEM), system = true))
         assertFalse(dark(ThemeCustomization(baseId = Themes.PLASMA.id, mode = ThemeMode.SYSTEM), system = false))
+        // Dynamic follows the system unless a mode is chosen.
+        assertFalse(dark(ThemeCustomization(baseId = Themes.DYNAMIC.id), system = false))
+        assertTrue(dark(ThemeCustomization(baseId = Themes.DYNAMIC.id), system = true))
+        assertTrue(dark(ThemeCustomization(baseId = Themes.DYNAMIC.id, mode = ThemeMode.DARK), system = false))
     }
 
     @Test fun defaultsAndAdjustmentsResolve() {

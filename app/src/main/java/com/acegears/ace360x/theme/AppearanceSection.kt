@@ -3,6 +3,7 @@ package com.acegears.ace360x.theme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,7 @@ fun AppearanceSection() {
     fun update(t: (ThemeCustomization) -> ThemeCustomization) = scope.launch { repo.update(t) }
     val active = LocalAceTheme.current
     val cs = MaterialTheme.colorScheme
+    val systemDark = isSystemInDarkTheme()
 
     AceCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(vertical = 8.dp)) {
@@ -72,7 +74,11 @@ fun AppearanceSection() {
                         row.forEach { spec ->
                             ThemeTile(
                                 spec = spec,
-                                dark = if (spec.id == active.spec.id) active.palette.dark else ResolvedTheme.defaultMode(spec) != ThemeMode.LIGHT,
+                                dark = if (spec.id == active.spec.id) {
+                                    active.palette.dark
+                                } else {
+                                    ResolvedTheme.wantsDark(ThemeCustomization(baseId = spec.id), systemDark)
+                                },
                                 selected = spec.id == active.spec.id,
                                 modifier = Modifier.weight(1f),
                             ) {

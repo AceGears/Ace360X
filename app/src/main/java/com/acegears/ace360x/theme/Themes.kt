@@ -306,9 +306,15 @@ data class ResolvedTheme(
             )
         }
 
-        /** "Steel Light" opens light; every other theme opens dark until the user picks a mode. */
-        fun defaultMode(spec: ThemeSpec): ThemeMode =
-            if (spec.id == Themes.STEEL_LIGHT_FIRST.id) ThemeMode.LIGHT else ThemeMode.DARK
+        /**
+         * "Steel Light" opens light and Dynamic follows the system (as Material You does);
+         * every other theme opens dark until the user picks a mode.
+         */
+        fun defaultMode(spec: ThemeSpec): ThemeMode = when (spec.id) {
+            Themes.STEEL_LIGHT_FIRST.id -> ThemeMode.LIGHT
+            Themes.DYNAMIC.id -> ThemeMode.SYSTEM
+            else -> ThemeMode.DARK
+        }
     }
 }
 
