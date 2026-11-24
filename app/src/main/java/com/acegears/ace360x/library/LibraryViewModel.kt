@@ -26,10 +26,26 @@ data class LibraryUiState(
     val query: String = "",
     val sort: SortMode = SortMode.NAME,
     val favoritesOnly: Boolean = false,
+    val tab: HomeTab = HomeTab.ALL,
+    val layout: LibraryLayout = LibraryLayout.GRID,
     val favorites: Set<String> = emptySet(),
     val stats: Map<String, PlayStat> = emptyMap(),
 ) {
     val allGames: List<GameEntry> get() = report?.games ?: cachedGames
+
+    private fun statOf(g: GameEntry) = stats[g.uri.toString()] ?: PlayStat()
+
+    /** Games on the selected home tab (pure; unit-tested via LibraryFilter). */
+    val tabGames: List<GameEntry>
+        get() = gamesOn(tab)
+
+    fun gamesOn(t: HomeTab): List<GameEntry> = LibraryFilter.forTab(
+        allGames, t, query, favorites, sort,
+        name = { it.displayName }, key = { it.uri.toString() }, size = { it.sizeBytes }, stat = ::statOf,
+    )
+
+    val continuePlaying: GameEntry?
+        get() = LibraryFilter.continuePlaying(allGames.filter { it.launchTarget() != null }, ::statOf)
 
     /** Search, favourites filter and sort applied (pure; unit-tested via LibraryFilter). */
     val visibleGames: List<GameEntry>
@@ -41,8 +57,17 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(LibraryUiState())
     val state: StateFlow<LibraryUiState> = _state.asStateFlow()
     private var scanJob: Job? = null
+    private val prefs = app.getSharedPreferences("library_ui", android.content.Context.MODE_PRIVATE)
+
+    private companion object {
+        const val KEY_LAYOUT = "layout"
+        const val KEY_SORT = "sort"
+    }
 
     init {
+        val layout = LibraryLayout.entries.firstOrNull { it.name == prefs.getString(KEY_LAYOUT, null) }
+        val sort = SortMode.entries.firstOrNull { it.name == prefs.getString(KEY_SORT, null) }
+        _state.update { it.copy(layout = layout ?: it.layout, sort = sort ?: it.sort) }
         viewModelScope.launch {
             val cached = withContext(Dispatchers.IO) { repo.loadCache() }
             _state.update { it.copy(cachedGames = cached) }
@@ -69,8 +94,19 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
     fun dismissError() = _state.update { it.copy(error = null) }
 
     fun setQuery(q: String) = _state.update { it.copy(query = q) }
-    fun setSort(s: SortMode) = _state.update { it.copy(sort = s) }
+    fun setSort(s: SortMode) {
+        _state.update { it.copy(sort = s) }
+        prefs.edit().putString(KEY_SORT, s.name).apply()
+    }
     fun setFavoritesOnly(v: Boolean) = _state.update { it.copy(favoritesOnly = v) }
+    fun setTab(t: HomeTab) = _state.update { it.copy(tab = t) }
+
+    /** Layout and sort are remembered between app starts. */
+    fun setLayout(l: LibraryLayout) {
+        _state.update { it.copy(layout = l) }
+        prefs.edit().putString(KEY_LAYOUT, l.name).apply()
+    }
+
     fun toggleFavorite(game: GameEntry) = viewModelScope.launch {
         repo.setFavorite(game.uri, game.uri.toString() !in _state.value.favorites)
     }

@@ -40,7 +40,7 @@ private data class ThermalSample(val status: Int, val headroom: Float?)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceScreen(modifier: Modifier = Modifier) {
+fun DeviceScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var vulkan by remember { mutableStateOf<JSONObject?>(null) }
@@ -77,7 +77,7 @@ fun DeviceScreen(modifier: Modifier = Modifier) {
     )
 
     Column(modifier.fillMaxSize()) {
-        TopAppBar(title = { Text("Device") })
+        com.acegears.ace360x.theme.AceTopBar("Device and diagnostics", onBack)
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 InfoCard("Provisional minimum") {

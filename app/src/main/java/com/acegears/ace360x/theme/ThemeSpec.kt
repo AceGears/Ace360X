@@ -26,7 +26,7 @@ data class MotionTokens(
     )
 
     companion object {
-        val DEFAULT = MotionTokens(120, 240, 420, EasingKind.EMPHASIZED)
+        val DEFAULT = MotionTokens(140, 280, 460, EasingKind.EMPHASIZED)
 
         /** Used when animations are off system-wide or by the user. */
         val REDUCED = MotionTokens(0, 0, 0, EasingKind.LINEAR)
@@ -50,7 +50,40 @@ data class BrandColors(
     val glow: Long,
     /** Second tone of dual-colour edges and gradients. */
     val glowAlt: Long,
-)
+) {
+    val asList: List<Long> get() = listOf(primary, secondary, accent, background, surface, glow, glowAlt)
+
+    /**
+     * These colours made safe to build a theme from, whatever was entered (Custom theme,
+     * Android's dynamic colours): everything opaque, and the background and card colour
+     * pushed darker (or lighter) just far enough that the theme's text reads at WCAG AA on
+     * every surface derived from them. Colours that already work are returned unchanged.
+     */
+    fun sanitized(): BrandColors {
+        fun opaque(c: Long) = c or 0xFF000000L
+        val bg0 = opaque(background)
+        val dark = Contrast.luminance(bg0) < ThemeVariant.DARK_LUMINANCE
+        val text = ThemeVariant.textColor(dark)
+        val extreme = if (dark) 0xFF000000L else 0xFFFFFFFFL
+        var bg = bg0
+        var card = opaque(surface)
+        for (step in 0..SANITIZE_STEPS) {
+            bg = ColorMath.blend(bg0, extreme, step / SANITIZE_STEPS.toFloat())
+            card = ColorMath.blend(opaque(surface), extreme, step / SANITIZE_STEPS.toFloat())
+            val worst = ThemeVariant.solidSurfaces(bg, card, text, dark).minOf { Contrast.ratio(text, it) }
+            // A little headroom so rounding in later blends can't drop below the limit.
+            if (worst >= Contrast.AA_NORMAL + 0.1) break
+        }
+        return BrandColors(opaque(primary), opaque(secondary), opaque(accent), bg, card, opaque(glow), opaque(glowAlt))
+    }
+
+    companion object {
+        private const val SANITIZE_STEPS = 50
+
+        fun fromList(v: List<Long>): BrandColors? =
+            if (v.size == 7) BrandColors(v[0], v[1], v[2], v[3], v[4], v[5], v[6]) else null
+    }
+}
 
 /** Full set of Material 3 roles the app uses, plus the decorative tones. */
 data class Palette(
@@ -144,12 +177,12 @@ data class ThemeVariant(
         val white = 0xFFFFFFFFL
         val bg = c.background or 0xFF000000L
         val surface = cardColor()
-        val variant = ColorMath.blend(surface, text, if (d) 0.08f else 0.05f)
-        val lowest = ColorMath.blend(bg, surface, 0.4f)
-        val low = ColorMath.blend(bg, surface, 0.7f)
-        val high = ColorMath.blend(surface, text, 0.05f)
-        val highest = ColorMath.blend(surface, text, 0.09f)
-        val solid = listOf(bg, surface, variant, lowest, low, surface, high, highest)
+        val solid = solidSurfaces(bg, surface, text, d)
+        val variant = solid[2]
+        val lowest = solid[3]
+        val low = solid[4]
+        val high = solid[6]
+        val highest = solid[7]
         val surfaces = solid + (backdrop?.let { backdropSurfaces(it, orbAlphaLimit, surface) } ?: emptyList())
 
         fun readable(colour: Long) = Contrast.ensure(colour, surfaces, Contrast.AA_NORMAL, toward = text)
@@ -195,6 +228,20 @@ data class ThemeVariant(
         const val ORB_ALPHA_DARK = 0.55f
         const val ORB_ALPHA_LIGHT = 0.7f
         const val MAX_ACCENT_SHIFT = 0.3f
+
+        /**
+         * The opaque surface levels derived from a background and a card colour, in the order
+         * background, surface, variant, lowest, low, container, high, highest.
+         */
+        fun solidSurfaces(bg: Long, surface: Long, text: Long, dark: Boolean): List<Long> = listOf(
+            bg, surface,
+            ColorMath.blend(surface, text, if (dark) 0.08f else 0.05f),
+            ColorMath.blend(bg, surface, 0.4f),
+            ColorMath.blend(bg, surface, 0.7f),
+            surface,
+            ColorMath.blend(surface, text, 0.05f),
+            ColorMath.blend(surface, text, 0.09f),
+        )
 
         /** Text colour on a theme's surfaces: near-white on dark, near-black on light. */
         fun textColor(dark: Boolean): Long = if (dark) 0xFFF4F3FBL else 0xFF15122AL

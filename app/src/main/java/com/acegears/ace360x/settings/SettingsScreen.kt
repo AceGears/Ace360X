@@ -1,5 +1,6 @@
 package com.acegears.ace360x.settings
 
+import com.acegears.ace360x.theme.AceTopBar
 import com.acegears.ace360x.theme.AppearanceSection
 import com.acegears.ace360x.theme.AceSlider
 import com.acegears.ace360x.theme.AceSwitch
@@ -49,7 +50,7 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(section: SettingsSection, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val repo = remember { SettingsRepository(context.applicationContext) }
     val settings by repo.settings.collectAsStateWithLifecycle(initialValue = EmulatorSettings())
@@ -60,17 +61,17 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     var capturing by remember { mutableStateOf<Pair<Int, String>?>(null) }
 
     Column(modifier.fillMaxSize()) {
-        TopAppBar(title = { Text("Settings") })
+        AceTopBar(section.title, onBack)
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { AppearanceSection() }
-            item {
+            if (section == SettingsSection.APPEARANCE) item { AppearanceSection() }
+            if (section.emulation) item {
                 Text(
-                    "Emulation settings below apply the next time you start a game.",
+                    "These settings apply the next time you start a game.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            item {
+            if (section == SettingsSection.GRAPHICS) item {
                 Section("Graphics") {
                     EmulatorSettings.GraphicsPreset.entries.forEach { preset ->
                         val selected = settings.graphicsPreset == preset
@@ -106,12 +107,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     ) { v -> update { it.copy(keepAspectRatio = v) } }
                 }
             }
-            item {
+            if (section == SettingsSection.GRAPHICS) item {
                 Section("Audio") {
                     SwitchRow("Mute game audio", null, settings.mute) { v -> update { it.copy(mute = v) } }
                 }
             }
-            item {
+            if (section == SettingsSection.CONTROLS) item {
                 Section("Controller") {
                     SliderRow(
                         "Stick dead zone",
@@ -145,7 +146,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     ) { Text("Reset button mapping") }
                 }
             }
-            item {
+            if (section == SettingsSection.CONTROLS) item {
                 Section("Touch controls") {
                     SubHeading("When a game starts")
                     EmulatorSettings.TouchDefault.entries.forEach { td ->
@@ -165,7 +166,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     ) { v -> update { it.copy(touchScale = v) } }
                 }
             }
-            item {
+            if (section == SettingsSection.ADVANCED) item {
                 Section("Advanced") {
                     SwitchRow(
                         "Show performance numbers in game",

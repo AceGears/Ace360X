@@ -124,11 +124,23 @@ object Themes {
         colors(0xFFE8B931, 0xFFF5E6B8, 0xFFFFD866, 0xFF0E0B05, 0xFF1C170B, 0xFFE8B931, 0xFFFFD866),
     )
 
-    val ALL: List<ThemeSpec> = listOf(
+    /**
+     * "Dynamic Material You": colours come from Android (12+) at run time; these Steel
+     * colours are only what it shows where the system has none to offer.
+     */
+    val DYNAMIC = solid("dynamic", "Dynamic Material You", "Colours from your wallpaper", STEEL_DARK, STEEL_LIGHT)
+
+    /** "Custom": the user's own seven colours; these are the starting point. */
+    val CUSTOM = solid("custom", "Custom", "Your own colours", STEEL_DARK, STEEL_LIGHT)
+
+    /** The fixed, tested themes. */
+    val PRESETS: List<ThemeSpec> = listOf(
         AQUA_GLASS, VIOLET_PULSE, JADE_GLASS, SANDSTONE, PLASMA,
         STEEL, STEEL_LIGHT_FIRST, NEON_CLASSIC, NEON_PURPLE, CYBER_BLUE, MINIMAL, AMOLED,
         MIDNIGHT_BLUE, CRIMSON_RED, ROYAL_PURPLE, EMERALD_GREEN, GOLD_EDITION,
     )
+
+    val ALL: List<ThemeSpec> = PRESETS + listOf(DYNAMIC, CUSTOM)
 
     /** AceArcade's signature look. */
     val DEFAULT: ThemeSpec = STEEL
@@ -158,17 +170,24 @@ data class ThemeCustomization(
     /** Animation speed, 25–300 % (higher = faster). */
     val animationSpeed: Int? = null,
     val reduceMotion: Boolean? = null,
+    /** Selection indicators stretch toward their target ("liquid") instead of sliding. */
+    val liquidMotion: Boolean? = null,
+    /** Removed items shake and dissolve before they disappear. */
+    val deleteEffect: Boolean? = null,
+    /** The seven colours of the Custom theme; null until the user edits them. */
+    val customColors: BrandColors? = null,
 ) {
     /** Compact form for passing to the game process in the launch Intent. */
     fun encode(): String = listOf<Any?>(
         "v$SCHEMA_VERSION", baseId, mode?.name, glow, gradient, border, corner, glass, textScale,
-        animationSpeed, reduceMotion,
+        animationSpeed, reduceMotion, liquidMotion, deleteEffect,
+        customColors?.asList?.joinToString(",") { java.lang.Long.toHexString(it and 0xFFFFFFFFL) },
     ).joinToString("|") { it?.toString() ?: "-" }
 
     companion object {
         /** Bump when the stored keys change meaning; older diffs are then dropped. */
         const val SCHEMA_VERSION = 2
-        private const val FIELDS = 11
+        private const val FIELDS = 14
 
         const val DEFAULT_GLOW = 45
         const val DEFAULT_GRADIENT = 60
@@ -200,6 +219,12 @@ data class ThemeCustomization(
                 textScale = int(f[8], TEXT_SCALE_RANGE),
                 animationSpeed = int(f[9], ANIMATION_SPEED_RANGE),
                 reduceMotion = opt(f[10]) { it.toBooleanStrictOrNull() },
+                liquidMotion = opt(f[11]) { it.toBooleanStrictOrNull() },
+                deleteEffect = opt(f[12]) { it.toBooleanStrictOrNull() },
+                customColors = opt(f[13]) { v ->
+                    val parts = v.split(",").map { it.toLongOrNull(16)?.takeIf { n -> n in 0..0xFFFFFFFFL } }
+                    if (parts.any { it == null }) null else BrandColors.fromList(parts.filterNotNull())
+                },
             )
         }
     }
@@ -223,18 +248,39 @@ data class ResolvedTheme(
     /** Multiplier for animation durations (2 = half speed). */
     val durationScale: Float,
     val reduceMotionByUser: Boolean,
+    val liquidMotion: Boolean,
+    val deleteEffect: Boolean,
 ) {
     val backdrop: Backdrop? get() = variant.backdrop
 
     companion object {
-        fun resolve(c: ThemeCustomization, systemDark: Boolean = true): ResolvedTheme {
+        /** Whether [c] shows dark right now ([systemDark] = the system setting). */
+        fun wantsDark(c: ThemeCustomization, systemDark: Boolean): Boolean {
             val spec = Themes.byId(c.baseId)
-            val dark = when (c.mode ?: defaultMode(spec)) {
+            // The Custom theme is as dark or light as its own background colour.
+            if (spec.id == Themes.CUSTOM.id) return customVariant(c).dark
+            return when (c.mode ?: defaultMode(spec)) {
                 ThemeMode.DARK -> true
                 ThemeMode.LIGHT -> false
                 ThemeMode.SYSTEM -> systemDark
             }
-            val variant = spec.variant(dark)
+        }
+
+        private fun customVariant(c: ThemeCustomization): ThemeVariant =
+            ThemeVariant((c.customColors ?: Themes.CUSTOM.dark.colors).sanitized())
+
+        /**
+         * @param dynamic Android's dynamic colours for the wanted mode, when the Dynamic theme
+         *   is selected and the system provides them; they are sanitised like custom colours.
+         */
+        fun resolve(c: ThemeCustomization, systemDark: Boolean = true, dynamic: BrandColors? = null): ResolvedTheme {
+            val spec = Themes.byId(c.baseId)
+            val dark = wantsDark(c, systemDark)
+            val variant = when {
+                spec.id == Themes.CUSTOM.id -> customVariant(c)
+                spec.id == Themes.DYNAMIC.id && dynamic != null -> ThemeVariant(dynamic.sanitized())
+                else -> spec.variant(dark)
+            }
             val gradient = (c.gradient ?: ThemeCustomization.DEFAULT_GRADIENT)
                 .coerceIn(ThemeCustomization.GRADIENT_RANGE) / 100f
             val designOrb = (if (dark) ThemeVariant.ORB_ALPHA_DARK else ThemeVariant.ORB_ALPHA_LIGHT) *
@@ -255,6 +301,8 @@ data class ResolvedTheme(
                     .coerceIn(ThemeCustomization.TEXT_SCALE_RANGE) / 100f,
                 durationScale = 100f / speed,
                 reduceMotionByUser = c.reduceMotion ?: false,
+                liquidMotion = c.liquidMotion ?: true,
+                deleteEffect = c.deleteEffect ?: true,
             )
         }
 

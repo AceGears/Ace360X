@@ -32,6 +32,11 @@ class ThemeRepository(private val context: Context) {
         val textScale = intPreferencesKey("text_scale")
         val animationSpeed = intPreferencesKey("animation_speed")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
+        val liquidMotion = booleanPreferencesKey("liquid_motion")
+        val deleteEffect = booleanPreferencesKey("delete_effect")
+
+        /** Seven comma-separated ARGB hex values, as in [ThemeCustomization.encode]. */
+        val customColors = stringPreferencesKey("custom_colors")
     }
 
     val customization: Flow<ThemeCustomization> = context.themeStore.data.map(::fromPrefs)
@@ -50,13 +55,20 @@ class ThemeRepository(private val context: Context) {
             prefs.setOrRemove(Keys.textScale, c.textScale)
             prefs.setOrRemove(Keys.animationSpeed, c.animationSpeed)
             prefs.setOrRemove(Keys.reduceMotion, c.reduceMotion)
+            prefs.setOrRemove(Keys.liquidMotion, c.liquidMotion)
+            prefs.setOrRemove(Keys.deleteEffect, c.deleteEffect)
+            prefs.setOrRemove(
+                Keys.customColors,
+                c.customColors?.asList?.joinToString(",") { java.lang.Long.toHexString(it and 0xFFFFFFFFL) },
+            )
         }
     }
 
     /** Selecting another theme keeps the user's adjustments but returns to that theme's own mode. */
     suspend fun selectBase(id: String) = update { it.copy(baseId = Themes.byId(id).id, mode = null) }
 
-    suspend fun resetCustomizations() = update { ThemeCustomization(baseId = it.baseId) }
+    /** Back to the defaults; the Custom theme's colours are kept. */
+    suspend fun resetCustomizations() = update { ThemeCustomization(baseId = it.baseId, customColors = it.customColors) }
 
     private fun <T> MutablePreferences.setOrRemove(key: Preferences.Key<T>, value: T?) {
         if (value == null) remove(key) else this[key] = value
@@ -78,6 +90,10 @@ class ThemeRepository(private val context: Context) {
                 textScale = p[Keys.textScale],
                 animationSpeed = p[Keys.animationSpeed],
                 reduceMotion = p[Keys.reduceMotion],
+                liquidMotion = p[Keys.liquidMotion],
+                deleteEffect = p[Keys.deleteEffect],
+                customColors = p[Keys.customColors]?.split(",")
+                    ?.mapNotNull { it.toLongOrNull(16) }?.let { BrandColors.fromList(it) },
             ).encode(),
         )
     }

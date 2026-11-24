@@ -1,6 +1,7 @@
 package com.acegears.ace360x.theme
 
 import android.content.Context
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -11,7 +12,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Info
@@ -23,12 +28,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -119,7 +127,11 @@ private fun shapesFor(cornerDp: Int): Shapes {
 fun AceTheme(customization: ThemeCustomization, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val systemDark = isSystemInDarkTheme()
-    val resolved = remember(customization, systemDark) { ResolvedTheme.resolve(customization, systemDark) }
+    val wantsDark = ResolvedTheme.wantsDark(customization, systemDark)
+    val dynamic = if (customization.baseId == Themes.DYNAMIC.id) dynamicBrandColors(context, wantsDark) else null
+    val resolved = remember(customization, systemDark, dynamic) {
+        ResolvedTheme.resolve(customization, systemDark, dynamic)
+    }
     val scheme = remember(resolved.palette) { resolved.palette.toColorScheme() }
     val typography = remember { aceTypography() }
     val shapes = remember(resolved.cornerDp) { shapesFor(resolved.cornerDp) }
@@ -143,6 +155,26 @@ fun AceTheme(customization: ThemeCustomization, content: @Composable () -> Unit)
     }
 }
 
+/** True where Android offers wallpaper-based colours (Android 12+). */
+val dynamicColorsAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+private fun Color.toArgbLong(): Long = toArgb().toLong() and 0xFFFFFFFFL
+
+/** Android's dynamic colours as the seven brand colours, or null before Android 12. */
+fun dynamicBrandColors(context: Context, dark: Boolean): BrandColors? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+    val s = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    return BrandColors(
+        primary = s.primary.toArgbLong(),
+        secondary = s.secondary.toArgbLong(),
+        accent = s.tertiary.toArgbLong(),
+        background = s.background.toArgbLong(),
+        surface = s.surfaceContainer.toArgbLong(),
+        glow = s.primary.toArgbLong(),
+        glowAlt = s.tertiary.toArgbLong(),
+    )
+}
+
 /** The app's icons (rounded set). Toggle-state icons (favourite star) stay as chosen. */
 object AceIcons {
     val Library: ImageVector get() = Icons.AutoMirrored.Rounded.List
@@ -153,4 +185,8 @@ object AceIcons {
     val Close: ImageVector get() = Icons.Rounded.Close
     val Refresh: ImageVector get() = Icons.Rounded.Refresh
     val Search: ImageVector get() = Icons.Rounded.Search
+    val Back: ImageVector get() = Icons.AutoMirrored.Rounded.ArrowBack
+    val Forward: ImageVector get() = Icons.AutoMirrored.Rounded.KeyboardArrowRight
+    val More: ImageVector get() = Icons.Rounded.MoreVert
+    val Play: ImageVector get() = Icons.Rounded.PlayArrow
 }

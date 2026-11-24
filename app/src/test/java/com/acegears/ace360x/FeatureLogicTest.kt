@@ -216,3 +216,38 @@ class UnmappedGpuReadsTest {
         org.junit.Assert.assertEquals(on, parsed)
     }
 }
+
+class HomeTabsTest {
+    private data class G(val name: String, val last: Long)
+    private val games = listOf(G("Halo 3", 30), G("Fable II", 0), G("Forza Horizon", 90), G("Gears of War", 10))
+    private fun on(tab: com.acegears.ace360x.library.HomeTab, query: String = "", fav: Set<String> = emptySet()) =
+        com.acegears.ace360x.library.LibraryFilter.forTab(
+            games, tab, query, fav, com.acegears.ace360x.library.SortMode.NAME,
+            name = { it.name }, key = { it.name }, size = { 0L },
+            stat = { com.acegears.ace360x.library.PlayStat(lastPlayedMillis = it.last) },
+        ).map { it.name }
+
+    @org.junit.Test
+    fun tabsFilterAndRecentIsNewestFirst() {
+        org.junit.Assert.assertEquals(listOf("Fable II", "Forza Horizon", "Gears of War", "Halo 3"), on(com.acegears.ace360x.library.HomeTab.ALL))
+        org.junit.Assert.assertEquals(listOf("Halo 3"), on(com.acegears.ace360x.library.HomeTab.FAVOURITES, fav = setOf("Halo 3")))
+        // Only played games, most recent first, whatever the chosen sort.
+        org.junit.Assert.assertEquals(listOf("Forza Horizon", "Halo 3", "Gears of War"), on(com.acegears.ace360x.library.HomeTab.RECENT))
+        org.junit.Assert.assertEquals(listOf("Forza Horizon"), on(com.acegears.ace360x.library.HomeTab.RECENT, query = "forza"))
+    }
+
+    @org.junit.Test
+    fun continuePlayingIsTheLastPlayedGameOrNothing() {
+        val stat = { g: G -> com.acegears.ace360x.library.PlayStat(lastPlayedMillis = g.last) }
+        org.junit.Assert.assertEquals("Forza Horizon", com.acegears.ace360x.library.LibraryFilter.continuePlaying(games, stat)?.name)
+        org.junit.Assert.assertNull(com.acegears.ace360x.library.LibraryFilter.continuePlaying(games.filter { it.last == 0L }, stat))
+    }
+
+    @org.junit.Test
+    fun coverInitials() {
+        org.junit.Assert.assertEquals("H3", com.acegears.ace360x.library.coverInitials("Halo 3"))
+        org.junit.Assert.assertEquals("NR", com.acegears.ace360x.library.coverInitials("Naruto: Rise of a Ninja"))
+        org.junit.Assert.assertEquals("F", com.acegears.ace360x.library.coverInitials("fable"))
+        org.junit.Assert.assertEquals("?", com.acegears.ace360x.library.coverInitials(" -- "))
+    }
+}

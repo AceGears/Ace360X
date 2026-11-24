@@ -1,6 +1,6 @@
 # AceArcade design in Ace360X
 
-Status: **stage 1 implemented (unverified on device)**; stages 2–3 not started.
+Status: **all three stages implemented (unverified on device)**.
 
 ## Source and licence
 - Reference: the owner's AceArcade app (repository AceGears/AceCore, branch `overhaul-0.4`,
@@ -31,12 +31,15 @@ Status: **stage 1 implemented (unverified on device)**; stages 2–3 not started
 6. **Structure**: home with a category dock and several library layouts (grid, compact,
    large, list, carousel), "Continue playing", a game page, grouped settings screens.
 
-## Stage 1 (done): themes and surfaces
+## Stage 1: themes and surfaces
 `app/.../theme/`: `ThemeSpec.kt`, `Themes.kt` (pure Kotlin, JVM-tested), `AceTheme.kt`,
 `Ambiance.kt` (backdrop), `ThemedComponents.kt`, `AppearanceSection.kt`, `ThemeRepository.kt`.
-Items 1–4 above except: Dynamic Material You, Custom colours, surface opacity, and the
-motion-style/delete-effect switches (they belong to stage 3 effects that don't exist yet;
-CLAUDE.md §9: no dead controls).
+All 17 preset themes in dark and light, plus **Dynamic Material You** (Android 12+; the
+system's colours are fed through the same palette builder) and **Custom** (seven colours
+entered as hex codes). Adjustments: mode, glass, glow, gradient, corners, border, text
+size, animation speed, reduce motion, liquid motion, delete effect.
+Not taken over: AceArcade's "surface opacity" slider (glass on/off covers it here) and its
+derived dark/light counterpart of a Custom theme (a Custom theme here has one look).
 
 ### Deliberate differences from AceArcade
 - **Accessibility first** (CLAUDE.md §10, WCAG AA is tested): colours used as *text*
@@ -46,9 +49,41 @@ CLAUDE.md §9: no dead controls).
   red is #E96872 instead of #E3202B; the glow stays #FF2A2A.
 - For the same reason the backdrop orbs are dimmed where needed (dark Aqua and Violet 0.45,
   Sandstone 0.25, Plasma 0.30 instead of 0.55), so accents need at most a 30 % shift.
+- Custom and Dynamic colours are "sanitised": background and card colour are pushed darker
+  or lighter just far enough for text to be readable. A unit test builds themes from 3,000
+  random colour sets and requires every one to pass.
+- No logo image: the header shows the name as a wordmark in the heading type. No cover art
+  (the app has no INTERNET permission, CLAUDE.md §12): covers are generated plates with the
+  game's initials in the theme's glow tones.
 
-## Stage 2 (not started): structure
-Home/library layouts, category dock, game page, settings grouping.
+## Stage 2: structure
+- `ui/AppRoot.kt`: screens pushed on a back stack with a fade + short slide (1/6 of the
+  width), as AceArcade's navigation does; the bottom tab bar is gone.
+- Home (`library/LibraryScreen.kt`): neon header (wordmark, search, layout/sort, settings),
+  "Continue playing", games as a cover grid / large covers / list, bottom dock
+  (`HomeDock.kt`). Tap starts a game, holding opens a sheet (Play, Game page, Settings for
+  this game, favourite).
+- AceArcade's dock holds user-made categories. Ace360X has no categories, so the dock holds
+  the three filters that exist: All games, Favourites, Recent.
+- Game page (`library/GameDetailsScreen.kt`), Settings home with one screen per section
+  (`settings/SettingsHome.kt`); Device and About moved under Settings; game folders have
+  their own screen (`library/FoldersScreen.kt`).
+- Not taken over because the features don't exist in Ace360X: categories and their manager,
+  carousel layout, multi-select, cover editing, cheats, import flow, engine settings.
 
-## Stage 3 (not started): motion
-Liquid indicator, press-lift, delete effect, and their switches.
+## Stage 3: motion
+`theme/Motion.kt`: press-scale and press-lift, the liquid dock indicator, the delete
+effect (used when a game folder is removed), tab-change slide, all scaled by the animation
+speed and disabled by reduce-motion. Nothing animates continuously.
+
+### Note on closeness
+The motion effects and surface treatments reproduce AceArcade's behaviour and numeric
+parameters (spring stiffness, durations, opacities, particle counts) so that they feel the
+same. The code was written for Ace360X, but an effect with the same phases and numbers is
+necessarily structured alike. Both projects have the same owner, who can license their own
+design to themselves; if a strictly independent implementation is ever needed (for example
+before accepting outside contributions under a different licence), `Motion.kt` and the edge
+brushes in `ThemedComponents.kt` are the places to revisit.
+
+## Status
+Implemented, compiled and unit-tested by CI. **Not yet seen on a device.**

@@ -250,3 +250,9 @@
   stage 3 (motion effects), Dynamic and Custom themes.
 - Owner also asked for "all games at a stable 60 fps without issues": answered that this
   cannot be promised (CLAUDE.md §15, §20.3); work continues per title with measurements.
+- Owner then asked to "complete everything first" (before testing). Added stage 2
+  (navigation, home, dock, covers, game page, settings home/sections, folders screen), stage 3
+  (press lift, liquid indicator, delete effect, transitions) and the Dynamic and Custom
+  themes. Pure-Kotlin logic and tests run locally (15/15, incl. 3,000 random colour sets);
+  Compose code compiled by CI only. **Nothing of the new UI has been seen on a device**, so
+  layout problems (spacing, clipping, touch targets, insets) are likely and unverified.

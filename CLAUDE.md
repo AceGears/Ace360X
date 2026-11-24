@@ -22,10 +22,11 @@ disagree, fix one of them in the same change. Feasibility research: `docs/FEASIB
 ```
 app/                Kotlin + Jetpack Compose UI (no emulation logic), package com.acegears.ace360x
   core/NativeBridge.kt  the ONLY Kotlin side of JNI
-  ui/  library/  device/  diag/ (Diagnostics report + share)  settings/ (EmulatorSettings → cvars)
+  ui/ (AppRoot: back-stack navigation, About)  library/ (home, dock, covers, game page, folders)
+  device/  diag/ (Diagnostics report + share)  settings/ (settings home + sections, EmulatorSettings → cvars)
   emu/ (EmulatorActivity, GamepadInput/GamepadMapper, TouchControls)
   theme/ (ThemeSpec tokens + AceArcade theme set + WCAG ThemeChecks [pure Kotlin]; AceTheme,
-          Ambiance (backdrop), ThemedComponents, AppearanceSection, ThemeRepository
+          Ambiance (backdrop), ThemedComponents, Motion, AppearanceSection, ThemeRepository
           [Compose/DataStore])
                     (later: overlay/)
 app/src/main/java/jp/xenia/emulator/  Kotlin port of upstream WindowedAppActivity/
@@ -112,10 +113,12 @@ docs/               feasibility, architecture, ADRs, reports
 - Theme set = AceArcade's: 5 glass themes (Aqua Glass, Violet Pulse, Jade Glass, Sandstone,
   Plasma) + 12 solid themes (AceArcade Steel [default], Steel Light, Neon classic, Neon Purple,
   Cyber Blue, Minimal, AMOLED Black, Midnight Blue, Crimson Red, Royal Purple, Emerald Green,
-  Gold Edition). Dynamic Material You and Custom are not built yet.
+  Gold Edition), plus Dynamic Material You (Android 12+) and Custom (seven user colours).
 - User customisations stored as a diff over a base theme (DataStore, versioned schema).
+- Structure follows AceArcade too: home with header, cover grid and bottom dock; pushed
+  screens (game page, settings home → sections) instead of bottom tabs.
 - Every theme variant must pass WCAG AA contrast for text (automated test), including on its
-  backdrop and glass cards. Where AceArcade's colours don't, text colours and orb brightness
+  backdrop and glass cards; Custom/Dynamic colours are sanitised so any colours pass. Where AceArcade's colours don't, text colours and orb brightness
   are adjusted; decorative colours are not.
 
 ## 11. Battery and thermal
@@ -217,11 +220,12 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   sort/favourites/playtime, quit confirmation.
 - Implemented (unverified on device): extracted-game and GoD launch via `acetree://` SAF provider
   (patches 0008/0009, native/host/saf_tree_provider.cc, emu/SafTree.kt).
-- Implemented (unverified on device): AceArcade design, stage 1 of 3 — AceArcade's 17 themes
-  (dark + light each, backdrops, glass cards, bevel/glow surfaces, typography), mode and look
-  adjustments stored as a versioned diff, WCAG AA JVM test (`ThemeTest`). The earlier 12
-  themes were removed at the owner's request. Stage 2 (home/dock/game page/settings
-  structure) and stage 3 (liquid indicator, delete effect) are not started. Visual review
+- Implemented (unverified on device): AceArcade design, all three stages — theme set
+  (17 presets dark + light, Dynamic, Custom), backdrops, glass/bevel/glow surfaces, look
+  adjustments; structure (home with header, "Continue playing", cover grid/list, dock;
+  game page; settings home with section screens; folders screen); motion (press, liquid
+  dock indicator, delete effect, screen and tab transitions). JVM tests: `ThemeTest`,
+  `HomeTabsTest`. Compiled by CI only; **nobody has seen it on a screen yet**. Visual review
   screenshots (Phase 9) need a device.
 - Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
   sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).

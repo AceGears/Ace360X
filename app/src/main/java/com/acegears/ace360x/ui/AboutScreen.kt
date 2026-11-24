@@ -39,9 +39,9 @@ private val sections = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(modifier: Modifier = Modifier) {
+fun AboutScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize()) {
-        TopAppBar(title = { Text("About") })
+        com.acegears.ace360x.theme.AceTopBar("About", onBack)
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
                 Text("Ace360X", style = MaterialTheme.typography.headlineSmall)
