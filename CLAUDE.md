@@ -225,8 +225,10 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   adjustments; structure (home with header, "Continue playing", cover grid/list, dock;
   game page; settings home with section screens; folders screen); motion (press, liquid
   dock indicator, delete effect, screen and tab transitions). JVM tests: `ThemeTest`,
-  `HomeTabsTest`. Compiled by CI only; **nobody has seen it on a screen yet**. Visual review
-  screenshots (Phase 9) need a device.
+  `HomeTabsTest`. Seen on device 2026-11-23 (build b7976e6, tester screenshots): home in
+  Steel and Dynamic themes, game page, settings home render as designed; three defects found
+  there were fixed in 77eb7c4 (not yet re-checked). Not yet seen: Appearance screen, glass
+  themes, light mode, list/large layouts, folders screen, the motion effects.
 - Implemented (unverified on device): per-game settings (resolution, AA, sharpening, aspect,
   sound, guest VSync) as a diff over global settings (`settings/GameOverrides.kt`).
 - Compatibility DB: `compat/compat.json` has two entries (555307E5, 55530825: In-game); other titles Untested;

@@ -256,3 +256,7 @@
   themes. Pure-Kotlin logic and tests run locally (15/15, incl. 3,000 random colour sets);
   Compose code compiled by CI only. **Nothing of the new UI has been seen on a device**, so
   layout problems (spacing, clipping, touch targets, insets) are likely and unverified.
+- First device screenshots of the new UI (build b7976e6): home (Steel, Dynamic), game page,
+  settings home. Fixed from them in 77eb7c4: ".iso" shown in names, a hard edge between the
+  game page's top bar and header wash, a square ripple on dock tabs. Still unseen on device:
+  Appearance, glass themes, light mode, other layouts, folders screen, motion.
