@@ -27,6 +27,9 @@ data class GameEntry(
     /** Path of the file inside [folderUri] ("Halo 3/default.xex"); "" if unknown (old cache). */
     val relativePath: String = "",
 ) {
+    /** The name shown in the app (file ending removed). */
+    val title: String get() = gameTitle(displayName)
+
     /** What Xenia is asked to open. Folder-based formats need the acetree:// form. */
     fun launchTarget(): String? = when {
         !format.isLaunchable -> null

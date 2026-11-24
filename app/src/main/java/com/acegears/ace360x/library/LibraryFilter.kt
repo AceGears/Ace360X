@@ -1,8 +1,22 @@
 package com.acegears.ace360x.library
 
-/** Up to two letters standing in for a cover: the first letters of the first two words. */
+private val GAME_FILE_EXTENSIONS = setOf("iso", "xex", "zar")
+private val FILLER_WORDS = setOf("the", "of", "a", "an", "and")
+
+/** A game's name for display: the file name without its ".iso"/".xex" ending. */
+fun gameTitle(fileName: String): String {
+    val dot = fileName.lastIndexOf('.')
+    val stripped = if (dot > 0 && fileName.substring(dot + 1).lowercase() in GAME_FILE_EXTENSIONS) fileName.substring(0, dot) else fileName
+    return stripped.trim().ifEmpty { fileName }
+}
+
+/**
+ * Up to two letters standing in for a cover: the first letters of the first two words that
+ * carry meaning ("The", "of" and the like are skipped when there are other words).
+ */
 fun coverInitials(name: String): String {
-    val words = name.split(' ', '-', '_', ':', '.').filter { w -> w.any { it.isLetterOrDigit() } }
+    val all = name.split(' ', '-', '_', ':', '.', '(', ')').filter { w -> w.any { it.isLetterOrDigit() } }
+    val words = all.filter { it.lowercase() !in FILLER_WORDS }.ifEmpty { all }
     val letters = words.take(2).mapNotNull { w -> w.firstOrNull { it.isLetterOrDigit() } }
     return letters.joinToString("").uppercase().ifEmpty { "?" }
 }

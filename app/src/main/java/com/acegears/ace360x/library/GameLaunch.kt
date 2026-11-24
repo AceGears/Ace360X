@@ -33,7 +33,7 @@ suspend fun launchGame(context: Context, game: GameEntry): Boolean {
     val theme = ThemeRepository(app).customization.first()
     context.startActivity(
         EmulatorActivity.launchIntent(
-            context, target, game.displayName, settings, statsKey = gameKey, theme = theme,
+            context, target, game.title, settings, statsKey = gameKey, theme = theme,
             gpuTraceDir = GpuTrace.consumeForLaunch(app),
         ),
     )
@@ -71,7 +71,7 @@ fun GameSettingsHost(game: GameEntry, open: Boolean, onClose: () -> Unit) {
     }
     loaded?.let { (global, overrides) ->
         GameSettingsDialog(
-            gameName = game.displayName,
+            gameName = game.title,
             global = global,
             initial = overrides,
             onSave = { o ->

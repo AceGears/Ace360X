@@ -249,5 +249,17 @@ class HomeTabsTest {
         org.junit.Assert.assertEquals("NR", com.acegears.ace360x.library.coverInitials("Naruto: Rise of a Ninja"))
         org.junit.Assert.assertEquals("F", com.acegears.ace360x.library.coverInitials("fable"))
         org.junit.Assert.assertEquals("?", com.acegears.ace360x.library.coverInitials(" -- "))
+        // Filler words are skipped, unless they are all there is.
+        org.junit.Assert.assertEquals("NB", com.acegears.ace360x.library.coverInitials("Naruto - The Broken Bond (Europe)"))
+        org.junit.Assert.assertEquals("T", com.acegears.ace360x.library.coverInitials("The"))
+    }
+
+    @org.junit.Test
+    fun gameTitleDropsOnlyGameFileEndings() {
+        org.junit.Assert.assertEquals("Naruto - The Broken Bond (Europe)", com.acegears.ace360x.library.gameTitle("Naruto - The Broken Bond (Europe).iso"))
+        org.junit.Assert.assertEquals("default", com.acegears.ace360x.library.gameTitle("default.XEX"))
+        org.junit.Assert.assertEquals("Halo 3", com.acegears.ace360x.library.gameTitle("Halo 3"))
+        org.junit.Assert.assertEquals("Vol. 2", com.acegears.ace360x.library.gameTitle("Vol. 2"))
+        org.junit.Assert.assertEquals(".iso", com.acegears.ace360x.library.gameTitle(".iso"))
     }
 }

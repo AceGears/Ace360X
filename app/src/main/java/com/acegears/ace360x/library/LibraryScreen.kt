@@ -361,10 +361,10 @@ private fun ContinuePlaying(game: GameEntry, stat: PlayStat, onPlay: () -> Unit)
     val theme = LocalAceTheme.current
     AceCard(Modifier.fillMaxWidth(), onClick = onPlay, glow = true) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            GameCover(game.displayName, RoundedCornerShape((theme.cornerDp * 0.6f).dp), Modifier.size(64.dp), letterSize = 22.sp)
+            GameCover(game.title, RoundedCornerShape((theme.cornerDp * 0.6f).dp), Modifier.size(64.dp), letterSize = 22.sp)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text("CONTINUE PLAYING", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                Text(game.displayName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(game.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 lastPlayedLabel(stat.lastPlayedMillis)?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -392,8 +392,8 @@ private fun GameTile(game: GameEntry, favorite: Boolean, onClick: () -> Unit, on
                 interactionSource = interaction,
                 indication = LocalIndication.current,
                 role = Role.Button,
-                onClickLabel = if (launchable) "Start ${game.displayName}" else null,
-                onLongClickLabel = "More about ${game.displayName}",
+                onClickLabel = if (launchable) "Start ${game.title}" else null,
+                onLongClickLabel = "More about ${game.title}",
                 onLongClick = onMenu,
                 onClick = { if (launchable) onClick() else onMenu() },
             )
@@ -401,7 +401,7 @@ private fun GameTile(game: GameEntry, favorite: Boolean, onClick: () -> Unit, on
             .padding(6.dp),
     ) {
         Box {
-            GameCover(game.displayName, RoundedCornerShape((theme.cornerDp * 0.75f).dp), Modifier.fillMaxWidth().aspectRatio(0.75f))
+            GameCover(game.title, RoundedCornerShape((theme.cornerDp * 0.75f).dp), Modifier.fillMaxWidth().aspectRatio(0.75f))
             if (favorite) {
                 Icon(
                     Icons.Rounded.Star, contentDescription = "Favourite", tint = cs.onPrimaryContainer,
@@ -410,7 +410,7 @@ private fun GameTile(game: GameEntry, favorite: Boolean, onClick: () -> Unit, on
             }
         }
         Text(
-            game.displayName,
+            game.title,
             style = MaterialTheme.typography.titleSmall,
             color = cs.onSurface,
             maxLines = 2,
@@ -440,9 +440,9 @@ private fun GameListRow(
     val launchable = game.launchTarget() != null
     AceCard(Modifier.fillMaxWidth(), onClick = { if (launchable) onClick() else onMenu() }) {
         Row(Modifier.fillMaxWidth().padding(start = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            GameCover(game.displayName, RoundedCornerShape((theme.cornerDp * 0.5f).dp), Modifier.size(48.dp), letterSize = 18.sp)
+            GameCover(game.title, RoundedCornerShape((theme.cornerDp * 0.5f).dp), Modifier.size(48.dp), letterSize = 18.sp)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(game.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+                Text(game.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
                 Text(gameMetaLine(game), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val played = listOfNotNull(
                     lastPlayedLabel(stat.lastPlayedMillis),
@@ -466,7 +466,7 @@ private fun GameListRow(
                     tint = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                 )
             }
-            IconButton(onClick = onMenu) { Icon(AceIcons.More, contentDescription = "More about ${game.displayName}") }
+            IconButton(onClick = onMenu) { Icon(AceIcons.More, contentDescription = "More about ${game.title}") }
         }
     }
 }
@@ -500,7 +500,7 @@ private fun GameMenuSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(bottom = 24.dp)) {
-            SheetTitle(game.displayName)
+            SheetTitle(game.title)
             if (game.launchTarget() != null) SheetAction("Play", onPlay)
             SheetAction("Game page", onDetails)
             SheetAction("Settings for this game", onSettings)

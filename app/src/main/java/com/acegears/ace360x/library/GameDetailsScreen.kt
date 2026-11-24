@@ -81,6 +81,7 @@ fun GameDetailsScreen(gameUri: String, onBack: () -> Unit, modifier: Modifier = 
             }
         }
 
+        Column(Modifier.fillMaxWidth().background(aceHeroBrush())) {
         AceTopBar("", onBack) {
             IconButton(onClick = { vm.toggleFavorite(game) }, modifier = Modifier.aceFocusRing()) {
                 Icon(
@@ -90,19 +91,18 @@ fun GameDetailsScreen(gameUri: String, onBack: () -> Unit, modifier: Modifier = 
                 )
             }
         }
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Row(
-                Modifier.fillMaxWidth().background(aceHeroBrush()).padding(16.dp),
+                Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 GameCover(
-                    game.displayName,
+                    game.title,
                     RoundedCornerShape(theme.cornerDp.dp),
                     Modifier.width(132.dp).aspectRatio(0.75f),
                     letterSize = 44.sp,
                 )
                 Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                    Text(game.displayName, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
+                    Text(game.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
                     Text(
                         gameMetaLine(game),
                         style = MaterialTheme.typography.bodyMedium,
@@ -111,6 +111,8 @@ fun GameDetailsScreen(gameUri: String, onBack: () -> Unit, modifier: Modifier = 
                     )
                 }
             }
+        }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.aceGlow(theme.palette.glow.toColor(), if (launchable) theme.glowIntensity * 0.6f else 0f, 28.dp)) {
                     Button(

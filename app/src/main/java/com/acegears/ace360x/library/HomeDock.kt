@@ -2,6 +2,7 @@ package com.acegears.ace360x.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -103,7 +104,13 @@ fun HomeDock(selected: HomeTab, counts: Map<HomeTab, Int>, onSelect: (HomeTab) -
                     Modifier
                         .weight(1f)
                         .height(64.dp)
-                        .selectable(selected = isSelected, role = Role.Tab) { onSelect(tab) }
+                        .selectable(
+                            selected = isSelected,
+                            interactionSource = remember { MutableInteractionSource() },
+                            // The moving highlight is the feedback; a ripple would spill outside it.
+                            indication = null,
+                            role = Role.Tab,
+                        ) { onSelect(tab) }
                         .aceFocusRing(),
                     contentAlignment = Alignment.Center,
                 ) {
