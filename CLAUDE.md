@@ -242,13 +242,18 @@ interface changes in `docs/adr/`, and **no agent marks another's work verified w
   declared but unwritten in translated pixel shaders; the Adreno driver dropped every
   fragment). Compat entry: In-game. Speed/FPS not measured. Phase 4 still needs the
   10-minute audio test.
-- Implemented (unverified on device): in-game performance readout (Settings → Advanced):
-  guest-swap FPS, 1 % low, frame-time stdev, input→guest delivery time (patch 0023,
-  `emu/PerfStats.kt`). Emulation speed % is not measured. Tester reports slight input lag
-  with touch controls (2026-11-23); cause not yet established.
+- Verified on device (2026-11-23): the in-game performance readout works; first spot
+  readings in `docs/reports/perf/2026-11-23-first-readings.md` (two titles, roughly 26–33 FPS
+  in menus/fights with stalls of 400–600 ms after loading, 59 FPS in one settled scene;
+  input → game 5–35 ms, so the reported input lag is not in our input path). Emulation
+  speed % is not measured. No sustained (15/30/60 min) test exists.
+- Tester reports the phone gets hot quickly. Implemented (unverified on device): per-session
+  summary in the diagnostics report (duration, FPS, stalls, input delivery, thermal status
+  and headroom) to measure this. ADPF hints and the §11 response ladder are not implemented.
 - Implemented (unverified on device): per-game Experimental option "Missing graphics fix"
   (upstream cvar `gpu_allow_invalid_upload_range`), added to test whether the black surfaces
   in 55530825 come from the "Invalid upload range" rejections seen in its log.
-- Next: get numbers from the readout on device (none exist yet), then act on them; presenter stops
+- Next: a timed session with the summary to quantify heat and stalls, then act on it (persistent
+  shader/pipeline cache check, §11 ladder); the "Missing graphics fix" test for 55530825; presenter stops
   painting after swapchain recreation; confirm the "ended unexpectedly" banner fix; offer
   patches 0010–0012 and 0021 upstream.

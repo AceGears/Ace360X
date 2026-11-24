@@ -263,3 +263,36 @@ class HomeTabsTest {
         org.junit.Assert.assertEquals(".iso", com.acegears.ace360x.library.gameTitle(".iso"))
     }
 }
+
+class PerfSessionTest {
+    @org.junit.Test
+    fun totalsStallsInputAndHeat() {
+        val s = com.acegears.ace360x.emu.PerfSession("Test game")
+        // Second 1: 29 frames at 30 FPS and one 500 ms stall; two inputs, 10 ms and 30 ms.
+        s.add(longArrayOf(2, 40_000, 30_000, 60, *LongArray(29) { 33_333L }, 500_000L), thermalStatus = 0, headroom = Float.NaN)
+        // Seconds 2-3: steady, phone warm from second 2, headroom known.
+        repeat(2) { s.add(longArrayOf(0, 0, 0, 30, *LongArray(30) { 33_333L }), thermalStatus = 2, headroom = 0.93f) }
+        val frames = 90
+        val micros = 29 * 33_333L + 500_000L + 60 * 33_333L
+        org.junit.Assert.assertEquals(frames * 1_000_000.0 / micros, s.averageFps!!, 0.001)
+        val r = s.report()
+        org.junit.Assert.assertTrue(r, r.contains("Game: Test game"))
+        org.junit.Assert.assertTrue(r, r.contains("Measured for: 0 min 3 s"))
+        org.junit.Assert.assertTrue(r, r.contains("Stalls of 100 ms or longer: 1 (longest frame 500 ms)"))
+        org.junit.Assert.assertTrue(r, r.contains("average 20 ms, longest 30 ms over 2 changes"))
+        org.junit.Assert.assertTrue(r, r.contains("highest Android thermal status 2"))
+        org.junit.Assert.assertTrue(r, r.contains("warm or hotter for 2 s, first after 2 s"))
+        org.junit.Assert.assertTrue(r, r.contains("0.93"))
+    }
+
+    @org.junit.Test
+    fun emptySessionSaysSo() {
+        val s = com.acegears.ace360x.emu.PerfSession("Nothing")
+        s.add(longArrayOf(0, 0, 0, 0), thermalStatus = 0, headroom = Float.NaN)
+        org.junit.Assert.assertNull(s.averageFps)
+        val r = s.report()
+        org.junit.Assert.assertTrue(r, r.contains("none finished by the game"))
+        org.junit.Assert.assertTrue(r, r.contains("no input was read"))
+        org.junit.Assert.assertFalse(r, r.contains("headroom"))
+    }
+}

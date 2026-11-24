@@ -43,7 +43,7 @@ fun GameSettingsDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "\"Default\" follows the Settings tab. Other choices apply to this game only, " +
+                    "\"Default\" follows the app's Settings. Other choices apply to this game only, " +
                         "the next time you start it.",
                     style = MaterialTheme.typography.bodySmall,
                 )

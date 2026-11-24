@@ -172,6 +172,7 @@ class EmulatorActivity : WindowedAppActivity() {
         statsKey?.let { PlayStats.markPlayed(this, it) }
 
         val showPerf = intent.getBooleanExtra(EXTRA_PERF_STATS, false)
+        val perfTitle = intent.getStringExtra(EXTRA_GAME_NAME) ?: "unknown"
         val touchOpacity = intent.getFloatExtra(EXTRA_TOUCH_OPACITY, 0.75f)
         val touchScale = intent.getFloatExtra(EXTRA_TOUCH_SCALE, 1f)
         touchVisible.value = when (intent.getStringExtra(EXTRA_TOUCH_DEFAULT)) {
@@ -204,8 +205,12 @@ class EmulatorActivity : WindowedAppActivity() {
               AceTheme(theme) {
                 Box(Modifier.fillMaxSize()) {
                     if (touchVisible.value) TouchControlsOverlay(touchState, touchOpacity, touchScale)
-                    if (showPerf) PerfReadout(Modifier.align(Alignment.TopCenter).padding(top = 44.dp))
-                    ThermalNotice(thermalStatus.intValue, Modifier.align(Alignment.TopStart).padding(top = 48.dp, start = 12.dp))
+                    PerfMonitor(showPerf, perfTitle, thermalStatus, Modifier.align(Alignment.TopCenter).padding(top = 44.dp))
+                    // Below the performance line when that is showing, so the two never overlap.
+                    ThermalNotice(
+                        thermalStatus.intValue,
+                        Modifier.align(Alignment.TopStart).padding(top = if (showPerf) 84.dp else 48.dp, start = 12.dp),
+                    )
                     if (confirmExit.value) {
                         AceDialog(
                             onDismissRequest = { confirmExit.value = false },

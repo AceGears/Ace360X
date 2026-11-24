@@ -260,3 +260,8 @@
   settings home. Fixed from them in 77eb7c4: ".iso" shown in names, a hard edge between the
   game page's top bar and header wash, a square ripple on dock tabs. Still unseen on device:
   Appearance, glass themes, light mode, other layouts, folders screen, motion.
+- First performance readings from the device (13 screenshots) recorded in
+  `docs/reports/perf/2026-11-23-first-readings.md`: spot values only. Input delivery is
+  5–35 ms; stalls of 400–600 ms after loading; tester reports quick heating.
+  Added a per-session summary to diagnostics (not yet run on device). Not done: any heat
+  mitigation — none is justified by measurements yet.

@@ -71,6 +71,9 @@ object Diagnostics {
                 java.io.File(context.filesDir, com.acegears.ace360x.emu.EmulatorActivity.LAST_LAUNCH_FILE).readText()
             }.getOrNull()
             w.appendLine("Last game start: ${lastLaunch ?: "none recorded"}")
+            val perf = runCatching { java.io.File(context.filesDir, com.acegears.ace360x.emu.PERF_SESSION_FILE).readText() }.getOrNull()
+            w.appendLine("Last play session (measured):")
+            w.appendLine(perf?.trim()?.prependIndent("  ") ?: "  none recorded")
             val traces = GpuTrace.traces(context)
             w.appendLine(
                 "GPU frame capture: armed for next launch=${GpuTrace.isArmed(context)}, " +
